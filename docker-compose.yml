@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:15
-    container_name: don_charo
+    container_name: don_charo_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
@@ -12,17 +12,23 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - don_charo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
     container_name: don_charo_backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://postgres:1234@db:5432/don_charo
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./backend:/app
     networks:
@@ -34,7 +40,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
     volumes:
