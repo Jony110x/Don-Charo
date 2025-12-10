@@ -334,3 +334,42 @@ def dashboard_hoy(
         "productos_stock_bajo": stock_bajo,
         "productos_stock_critico": stock_critico
     }
+
+@router.get("/ventas-por-horario-fecha")
+def ventas_por_horario_fecha(
+    fecha: str = Query(None),  # Formato: "2024-12-10"
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """
+    Obtener ventas por horario de una fecha específica.
+    Si no se proporciona fecha, muestra el día de hoy.
+    """
+    if fecha:
+        try:
+            fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+        except ValueError:
+            # Si el formato es incorrecto, usar hoy
+            fecha_obj = datetime.now().date()
+    else:
+        # Si no hay fecha, mostrar hoy
+        fecha_obj = datetime.now().date()
+    
+    horarios = db.query(
+        extract('hour', models.Venta.fecha).label('hora'),
+        func.count(models.Venta.id).label('cantidad')
+    ).filter(
+        func.date(models.Venta.fecha) == fecha_obj
+    ).group_by('hora').order_by('hora').all()
+    
+    # Crear array con todas las horas (0-23) para mostrar horas sin ventas
+    resultado = []
+    horas_con_datos = {int(h.hora): h.cantidad for h in horarios}
+    
+    for hora in range(24):
+        resultado.append({
+            "hora": f"{hora:02d}:00",
+            "cantidad": horas_con_datos.get(hora, 0)
+        })
+    
+    return resultado

@@ -66,7 +66,7 @@ const Dashboard = () => {
   return (
     <div style={{ 
       padding: '1.25rem',
-      height: 'calc(100vh - 140px)', // Altura fija
+      height: 'calc(100vh - 140px)', 
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden'

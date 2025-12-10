@@ -141,6 +141,7 @@ export const getVentasPorPeriodo = (periodo) => api.get(`/reportes/ventas-por-pe
 export const getCategoriasVendidas = (limite = 10) => api.get(`/reportes/categorias-mas-vendidas?limite=${limite}`);
 export const getProductosVendidos = (limite = 10) => api.get(`/reportes/productos-mas-vendidos?limite=${limite}`);
 export const getVentasPorHorario = () => api.get('/reportes/ventas-por-horario');
+export const getVentasPorHorarioFecha = (fecha) => api.get(`/reportes/ventas-por-horario-fecha${fecha ? `?fecha=${fecha}` : ''}`);
 export const getGanancias = (periodo) => api.get(`/reportes/ganancias?periodo=${periodo}`);
 export const getMetodosPago = () => api.get('/reportes/metodos-pago');
 
