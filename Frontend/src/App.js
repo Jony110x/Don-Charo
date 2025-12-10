@@ -85,7 +85,17 @@ function App() {
               alignItems: "center",
             }}
           >
-            <div>
+            {/* Logo + Título */}
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <img 
+                src="/logos/DonCharoLogo.png" 
+                alt="Don Charo Logo"
+                style={{
+                  height: "50px",
+                  width: "auto",
+                  objectFit: "contain"
+                }}
+              />
               <h1 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
                 Sistema de Ventas - Don Charo
               </h1>
@@ -95,7 +105,7 @@ function App() {
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               {/* Botón Claro */}
               <a
-                href="https://www.claro.com.ar"
+                href="https://clarocomercios.claro.com.ar/main/recargas"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -192,19 +202,6 @@ function App() {
                     {user.nombre_completo || user.username}
                   </span>
                 </div>
-                {/* <span
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#bfdbfe",
-                    backgroundColor: "rgba(255,255,255,0.2)",
-                    padding: "0.125rem 0.5rem",
-                    borderRadius: "0.25rem",
-                    display: "inline-block",
-                    marginTop: "0.25rem",
-                  }}
-                >
-                  Cajero
-                </span> */}
               </div>
 
               {/* Botón Salir */}
@@ -282,13 +279,20 @@ function App() {
             alignItems: "center",
           }}
         >
-          <div>
+          {/* Logo + Título */}
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <img 
+              src="/logos/DonCharoLogo.png" 
+              alt="Don Charo Logo"
+              style={{
+                height: "60px",
+                width: "auto",
+                objectFit: "contain"
+              }}
+            />
             <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>
               Autoservicio Don Charo
             </h1>
-            {/* <p style={{ color: "#bfdbfe", marginTop: "0.25rem" }}>
-              Control de Ventas, Stock y Finanzas
-            </p> */}
           </div>
 
           {/* User Info */}
@@ -307,19 +311,6 @@ function App() {
                   {user.nombre_completo || user.username}
                 </span>
               </div>
-              {/* <span
-                style={{
-                  fontSize: "0.875rem",
-                  color: "#bfdbfe",
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                  padding: "0.125rem 0.5rem",
-                  borderRadius: "0.25rem",
-                  display: "inline-block",
-                  marginTop: "0.25rem",
-                }}
-              >
-                Administrador
-              </span> */}
             </div>
             <button
               onClick={handleLogout}

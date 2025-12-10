@@ -198,7 +198,7 @@ const Login = ({ onLoginSuccess }) => {
 
         {/* Demo Credentials */}
         <div style={{
-          marginTop: '2rem',
+          marginTop: '1rem',
           padding: '1rem',
           backgroundColor: '#f3f4f6',
           borderRadius: '0.5rem',
