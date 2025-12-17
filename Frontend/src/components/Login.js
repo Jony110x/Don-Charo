@@ -195,28 +195,6 @@ const Login = ({ onLoginSuccess }) => {
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
-
-        {/* Demo Credentials */}
-        <div style={{
-          marginTop: '1rem',
-          padding: '1rem',
-          backgroundColor: '#f3f4f6',
-          borderRadius: '0.5rem',
-          fontSize: '0.875rem'
-        }}>
-          <p style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
-            Credenciales de prueba:
-          </p>
-          <p style={{ color: '#6b7280', marginBottom: '0.25rem' }}>
-            SuperAdmin: <strong>pepe</strong> / <strong>1234</strong>
-          </p>
-          <p style={{ color: '#6b7280', marginBottom: '0.25rem' }}>
-            Admin: <strong>admin</strong> / <strong>admin123</strong>
-          </p>
-          <p style={{ color: '#6b7280' }}>
-            Cajero: <strong>cajero</strong> / <strong>cajero123</strong>
-          </p>
-        </div>
       </div>
     </div>
   );
