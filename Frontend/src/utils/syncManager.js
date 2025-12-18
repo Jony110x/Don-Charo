@@ -1,12 +1,14 @@
-// utils/syncManager.js
-// Maneja la sincronización de ventas pendientes con el servidor
-
-import { getVentasPendientes, markVentaSincronizada, getAllProductos, saveProductos } from './indexedDB';
+import { 
+  getVentasPendientes, 
+  markVentaSincronizada, 
+  getAllProductos, 
+  saveProductos,
+} from './indexedDB';
 import api from '../api/api';
 
-/**
- * Sincronizar todas las ventas pendientes con el servidor
- */
+const BATCH_SIZE = 500; 
+const MAX_PARALLEL_BATCHES = 3; 
+
 export const syncPendingData = async () => {
   console.log('🔄 Iniciando sincronización de datos pendientes...');
   
@@ -25,11 +27,6 @@ export const syncPendingData = async () => {
     if (ventasPendientes.length === 0) {
       console.log('✅ No hay ventas pendientes para sincronizar');
       result.success = true;
-      
-      // Aunque no haya ventas, actualizar productos
-      await syncProductos();
-      result.productosSincronizados = true;
-      
       return result;
     }
 
@@ -49,7 +46,7 @@ export const syncPendingData = async () => {
         const response = await api.post('/ventas/', ventaData);
         
         if (response.status === 200 || response.status === 201) {
-          // Marcar como sincronizada
+          // ✅ Marcar como sincronizada usando TU función
           await markVentaSincronizada(venta.id);
           result.ventasSincronizadas++;
           console.log(`✅ Venta ${venta.id} sincronizada exitosamente`);
@@ -66,24 +63,12 @@ export const syncPendingData = async () => {
       }
     }
 
-    // 3. Sincronizar productos después de las ventas
-    try {
-      await syncProductos();
-      result.productosSincronizados = true;
-    } catch (error) {
-      console.error('❌ Error sincronizando productos:', error);
-      result.errores.push({
-        tipo: 'productos',
-        error: error.message
-      });
-    }
-
-    // 4. Evaluar resultado
+    // 3. Evaluar resultado
     if (result.errores.length === 0) {
       result.success = true;
       console.log(`✅ Sincronización completada: ${result.ventasSincronizadas} ventas`);
     } else {
-      result.success = result.ventasSincronizadas > 0; // Parcialmente exitoso
+      result.success = result.ventasSincronizadas > 0;
       console.warn(`⚠️ Sincronización parcial: ${result.ventasSincronizadas}/${ventasPendientes.length} ventas`);
     }
 
@@ -95,59 +80,114 @@ export const syncPendingData = async () => {
   return result;
 };
 
-/**
- * Sincronizar productos desde el servidor
- * @param {Function} onProgress - Callback opcional (current, total)
- */
 export const syncProductos = async (onProgress = null) => {
+  console.log('📥 Descargando productos del servidor (MODO OPTIMIZADO)...');
+  
   try {
-    console.log('📥 Descargando productos del servidor...');
-    
-    let todosLosProductos = [];
+    const startTime = Date.now();
+    let allProductos = [];
     let skip = 0;
-    const limit = 100; // Límite razonable por request
     let hasMore = true;
-    let total = 0;
-
-    // Descargar productos en lotes
+    let totalSincronizados = 0;
+    
     while (hasMore) {
-      const response = await api.get('/productos/', {
-        params: {
-          skip: skip,
-          limit: limit
-        }
-      });
-
-      const { productos, has_more, total: totalProductos } = response.data;
+      // Crear array de promesas para peticiones paralelas
+      const batchPromises = [];
       
-      if (!productos || productos.length === 0) {
+      for (let i = 0; i < MAX_PARALLEL_BATCHES; i++) {
+        const currentSkip = skip + (i * BATCH_SIZE);
+        
+        batchPromises.push(
+          api.get('/productos/', {
+            params: {
+              skip: currentSkip,
+              limit: BATCH_SIZE
+            }
+          })
+          .then(response => {
+            const { productos, has_more } = response.data;
+            return {
+              productos: productos || [],
+              hasMore: has_more,
+              skip: currentSkip
+            };
+          })
+          .catch(error => {
+            console.error(`Error en batch ${currentSkip}:`, error);
+            return { productos: [], hasMore: false, skip: currentSkip };
+          })
+        );
+      }
+      
+      // Esperar a que todas las peticiones paralelas terminen
+      const results = await Promise.all(batchPromises);
+      
+      // Procesar resultados
+      let batchProductos = [];
+      let anyHasMore = false;
+      
+      for (const result of results) {
+        if (result.productos.length > 0) {
+          batchProductos = batchProductos.concat(result.productos);
+        }
+        if (result.hasMore) {
+          anyHasMore = true;
+        }
+      }
+      
+      // Si no hay más productos, salir
+      if (batchProductos.length === 0) {
+        hasMore = false;
         break;
       }
-
-      todosLosProductos = [...todosLosProductos, ...productos];
-      hasMore = has_more;
-      skip += limit;
       
-      if (totalProductos) {
-        total = totalProductos;
+      // Agregar a la lista total
+      allProductos = allProductos.concat(batchProductos);
+      totalSincronizados = allProductos.length;
+      skip += (MAX_PARALLEL_BATCHES * BATCH_SIZE);
+      
+      // Callback de progreso
+      if (onProgress) {
+        const estimatedTotal = anyHasMore ? totalSincronizados + BATCH_SIZE : totalSincronizados;
+        onProgress(totalSincronizados, estimatedTotal);
       }
-
-      console.log(`📦 Descargados ${todosLosProductos.length} de ${total || '?'} productos...`);
       
-      // Reportar progreso
-      if (onProgress && total) {
-        onProgress(todosLosProductos.length, total);
+      // Log de progreso cada 1000 productos
+      if (totalSincronizados % 1000 === 0 || !anyHasMore) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const speed = Math.round(totalSincronizados / elapsed);
+        console.log(`📦 ${totalSincronizados} productos descargados (${speed} prod/seg)`);
+      }
+      
+      // Si ningún batch tiene más datos, terminar
+      if (!anyHasMore) {
+        hasMore = false;
+      }
+      
+      // Si el último batch tenía menos productos que el límite, no hay más
+      if (batchProductos.length < (MAX_PARALLEL_BATCHES * BATCH_SIZE)) {
+        hasMore = false;
       }
     }
-
-    if (todosLosProductos.length === 0) {
+    
+    if (allProductos.length === 0) {
       console.warn('⚠️ No se recibieron productos del servidor');
       return false;
     }
-
-    // Guardar en IndexedDB
-    await saveProductos(todosLosProductos);
-    console.log(`✅ ${todosLosProductos.length} productos sincronizados`);
+    
+    // ✅ Guardar usando TU función saveProductos (ya hace bulk insert)
+    console.log(`💾 Guardando ${allProductos.length} productos en IndexedDB...`);
+    await saveProductos(allProductos);
+    
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const avgSpeed = Math.round(allProductos.length / totalTime);
+    
+    console.log(`✅ ${allProductos.length} productos sincronizados en ${totalTime}s (${avgSpeed} prod/seg)`);
+    
+    // Callback final con total exacto
+    if (onProgress) {
+      onProgress(allProductos.length, allProductos.length);
+    }
     
     return true;
   } catch (error) {

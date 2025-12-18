@@ -11,7 +11,7 @@ router = APIRouter(prefix="/productos", tags=["productos"])
 @router.get("/", response_model=schemas.ProductosPaginados)
 def listar_productos(
     skip: int = Query(0, ge=0, description="Número de registros a saltar"),
-    limit: int = Query(50, ge=1, le=100, description="Número de registros a retornar"),
+    limit: int = Query(50, ge=1, le=500, description="Número de registros a retornar"),
     busqueda: Optional[str] = Query(None, description="Búsqueda por nombre, categoría o código"),
     categoria: Optional[str] = Query(None, description="Filtrar por categoría"),
     estado_stock: Optional[str] = Query(None, description="Filtrar por estado: todos, normal, bajo, critico"),

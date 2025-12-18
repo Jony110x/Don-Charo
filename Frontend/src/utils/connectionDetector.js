@@ -1,113 +1,158 @@
-// utils/connectionDetector.js
-// Detecta y monitorea el estado de conexión a internet
-
 class ConnectionDetector {
   constructor() {
-    this.listeners = [];
     this.isOnline = navigator.onLine;
+    this.listeners = [];
+    this.checkInterval = null;
+    this.lastCheckTime = Date.now();
     this.lastStatusChange = Date.now();
     
-    // Bind event handlers
+    // Bind methods
     this.handleOnline = this.handleOnline.bind(this);
     this.handleOffline = this.handleOffline.bind(this);
+    this.checkConnection = this.checkConnection.bind(this);
+    this.checkConnectionThrottled = this.checkConnectionThrottled.bind(this);
     
-    // Inicializar listeners
+    // Inicializar
     this.init();
+    
+    console.log('🌐 Connection Detector inicializado. Estado:', this.isOnline ? 'ONLINE' : 'OFFLINE');
   }
 
   init() {
-    // Escuchar eventos nativos del navegador
+    // Eventos nativos del navegador
     window.addEventListener('online', this.handleOnline);
     window.addEventListener('offline', this.handleOffline);
     
-    // Verificación periódica adicional (cada 30 segundos)
-    // Útil porque a veces los eventos online/offline no se disparan correctamente
-    this.intervalId = setInterval(() => {
-      this.checkConnection();
-    }, 30000);
+    // Polling cada 10 segundos para detectar cambios que los eventos no capturan
+    this.startPolling();
     
-    console.log(`🌐 Connection Detector inicializado. Estado: ${this.isOnline ? 'ONLINE' : 'OFFLINE'}`);
+    // Verificar conexión al hacer foco en la ventana
+    window.addEventListener('focus', this.checkConnection);
+    
+    // Verificar conexión al hacer click (para detectar cambios en DevTools)
+    document.addEventListener('click', this.checkConnectionThrottled);
   }
 
-  handleOnline() {
-    if (!this.isOnline) {
-      console.log('✅ Conexión restaurada');
-      this.isOnline = true;
-      this.lastStatusChange = Date.now();
-      this.notifyListeners('online');
-    }
-  }
-
-  handleOffline() {
-    if (this.isOnline) {
-      console.log('❌ Conexión perdida');
-      this.isOnline = false;
-      this.lastStatusChange = Date.now();
-      this.notifyListeners('offline');
-    }
-  }
-
-  // Verificación activa de conexión
+  // Verificar conexión real al servidor
   async checkConnection() {
-    const wasOnline = this.isOnline;
-    
-    // Verificar con navigator.onLine primero
-    if (!navigator.onLine) {
-      this.isOnline = false;
-      if (wasOnline !== this.isOnline) {
-        this.notifyListeners('offline');
-      }
-      return false;
-    }
-
-    // Intentar hacer ping al servidor
     try {
-      // Ping simple con timeout corto
+      // Intentar hacer una petición al servidor con timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos timeout
       
-      const response = await fetch('/api/health', {
+      const response = await fetch('http://localhost:8000/api/health', {
         method: 'HEAD',
+        signal: controller.signal,
         cache: 'no-cache',
-        signal: controller.signal
-      });
+        headers: { 'Cache-Control': 'no-cache' }
+      }).catch(() => null);
       
       clearTimeout(timeoutId);
       
-      this.isOnline = response.ok;
+      const wasOnline = this.isOnline;
+      const isNowOnline = response && response.ok;
+      
+      // Solo notificar si cambió el estado
+      if (wasOnline !== isNowOnline) {
+        console.log(`🌐 Cambio de conexión detectado: ${isNowOnline ? 'ONLINE' : 'OFFLINE'}`);
+        this.isOnline = isNowOnline;
+        this.lastStatusChange = Date.now();
+        this.notifyListeners(isNowOnline ? 'online' : 'offline', isNowOnline);
+      }
+      
+      return isNowOnline;
     } catch (error) {
-      // Si falla el fetch, asumir offline
-      this.isOnline = false;
+      // Si hay error, considerar offline
+      if (this.isOnline) {
+        console.log('🌐 Conexión perdida (error en verificación)');
+        this.isOnline = false;
+        this.lastStatusChange = Date.now();
+        this.notifyListeners('offline', false);
+      }
+      return false;
     }
-
-    // Si cambió el estado, notificar
-    if (wasOnline !== this.isOnline) {
-      this.lastStatusChange = Date.now();
-      this.notifyListeners(this.isOnline ? 'online' : 'offline');
-    }
-
-    return this.isOnline;
   }
 
-  // Suscribirse a cambios de conexión
+  // Verificación con throttle (para evitar muchas llamadas al hacer click)
+  checkConnectionThrottled() {
+    const now = Date.now();
+    if (now - this.lastCheckTime > 2000) { // Máximo cada 2 segundos
+      this.lastCheckTime = now;
+      this.checkConnection();
+    }
+  }
+
+  // Polling cada 10 segundos
+  startPolling() {
+    this.checkInterval = setInterval(() => {
+      this.checkConnection();
+    }, 10000); // Cada 10 segundos
+  }
+
+  stopPolling() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+  }
+
+  // Evento online nativo
+  handleOnline() {
+    console.log('🌐 Evento "online" nativo detectado');
+    
+    // Verificar conexión real antes de notificar
+    setTimeout(() => {
+      this.checkConnection();
+    }, 500);
+  }
+
+  // Evento offline nativo
+  handleOffline() {
+    console.log('🌐 Evento "offline" nativo detectado');
+    
+    if (this.isOnline) {
+      this.isOnline = false;
+      this.lastStatusChange = Date.now();
+      this.notifyListeners('offline', false);
+    }
+  }
+
+  // Suscribirse a cambios
   subscribe(callback) {
     this.listeners.push(callback);
     
-    // Retornar función de unsuscribe
+    // Retornar función para desuscribirse
     return () => {
       this.listeners = this.listeners.filter(cb => cb !== callback);
     };
   }
 
   // Notificar a todos los listeners
-  notifyListeners(status) {
+  notifyListeners(status, online) {
     this.listeners.forEach(callback => {
       try {
-        callback(status, this.isOnline);
+        callback(status, online);
       } catch (error) {
-        console.error('Error en callback de conexión:', error);
+        console.error('Error en listener de conexión:', error);
       }
     });
+  }
+
+  // Cleanup
+  destroy() {
+    window.removeEventListener('online', this.handleOnline);
+    window.removeEventListener('offline', this.handleOffline);
+    window.removeEventListener('focus', this.checkConnection);
+    document.removeEventListener('click', this.checkConnectionThrottled);
+    this.stopPolling();
+    this.listeners = [];
+    console.log('🌐 Connection Detector destruido');
+  }
+
+  // Método para forzar verificación manual
+  forceCheck() {
+    console.log('🔄 Verificación manual de conexión...');
+    return this.checkConnection();
   }
 
   // Obtener estado actual
@@ -115,36 +160,27 @@ class ConnectionDetector {
     return {
       isOnline: this.isOnline,
       lastStatusChange: this.lastStatusChange,
-      timeSinceChange: Date.now() - this.lastStatusChange
+      timeSinceChange: Date.now() - this.lastStatusChange,
+      navigatorOnLine: navigator.onLine
     };
-  }
-
-  // Cleanup
-  destroy() {
-    window.removeEventListener('online', this.handleOnline);
-    window.removeEventListener('offline', this.handleOffline);
-    
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-    }
-    
-    this.listeners = [];
-    console.log('🌐 Connection Detector destruido');
   }
 }
 
-// Singleton instance
-let instance = null;
+// Singleton
+let detectorInstance = null;
 
 export const getConnectionDetector = () => {
-  if (!instance) {
-    instance = new ConnectionDetector();
+  if (!detectorInstance) {
+    detectorInstance = new ConnectionDetector();
   }
-  return instance;
+  return detectorInstance;
 };
 
+// ✅ IMPORTANTE: Exportar isOnline como función para compatibilidad
+// Esta función es usada por api.js
 export const isOnline = () => {
-  return getConnectionDetector().isOnline;
+  const detector = getConnectionDetector();
+  return detector.isOnline;
 };
 
 export default getConnectionDetector;

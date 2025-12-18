@@ -21,6 +21,7 @@ import Login from "./components/Login";
 import Profile from "./components/Profile";
 import Users from "./components/Users";
 import { OfflineProvider, useOffline } from "./context/OfflineContext";
+import VentasDetalle from "./components/VentasDetalle";
 
 window.addEventListener('error', e => {
   if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
@@ -39,6 +40,12 @@ window.addEventListener('error', e => {
 // Banner de estado offline/online
 const OfflineBanner = () => {
   const { isOnline, isSyncing, ventasPendientes, triggerSync, isLoadingProducts, productosProgress } = useOffline();
+
+  // ✅ NUEVO: Solo mostrar banner para CAJERO
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (user.rol !== 'CAJERO' && user.rol !== 'cajero') {
+    return null; // ADMIN y SUPERADMIN no ven banner
+  }
 
   // Mostrar banner de carga inicial de productos
   if (isLoadingProducts) {
@@ -185,7 +192,7 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
-  const { isOnline, ventasPendientes } = useOffline();
+  const { isOnline, ventasPendientes, precargarProductos } = useOffline(); // ✅ AGREGADO precargarProductos
 
   useEffect(() => {
     // Verificar si hay sesión guardada
@@ -198,9 +205,29 @@ function AppContent() {
     }
   }, []);
 
-  const handleLoginSuccess = (userData) => {
+  // ✅ MODIFICADO: Ahora es async y precarga productos para CAJERO
+  const handleLoginSuccess = async (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
+
+    // ✅ NUEVO: Precargar productos SOLO si es CAJERO
+    if (userData.rol === 'CAJERO' || userData.rol === 'cajero') {
+      console.log('👤 Usuario CAJERO detectado - Iniciando precarga de productos...');
+      
+      try {
+        const result = await precargarProductos();
+        if (result.success) {
+          console.log('✅ Productos listos para modo offline');
+        } else {
+          console.log('⚠️ No se pudieron precargar productos:', result.message);
+        }
+      } catch (error) {
+        console.error('⚠️ Error en precarga:', error);
+        // No es crítico, el sistema puede funcionar sin precarga
+      }
+    } else {
+      console.log(`👤 Usuario ${userData.rol} - Modo online únicamente (sin precarga)`);
+    }
   };
 
   const handleLogout = () => {
@@ -460,6 +487,16 @@ function AppContent() {
       componente: Ventas,
     });
   }
+  
+  if (user.rol === "admin" || user.rol === "ADMIN" || 
+    user.rol === "superadmin" || user.rol === "SUPERADMIN") {
+  menuItems.push({
+    id: "ventas-detalle",
+    nombre: "Detalle Ventas",
+    icono: BarChart3,  // Puedes usar otro icono si prefieres
+    componente: VentasDetalle,
+  });
+}
 
   const ComponenteActual = menuItems.find(
     (item) => item.id === vistaActual
