@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getConnectionDetector } from '../utils/connectionDetector';
 import { initDB, countVentasPendientes } from '../utils/indexedDB';
@@ -14,6 +15,7 @@ export const useOffline = () => {
 };
 
 export const OfflineProvider = ({ children }) => {
+  // Estados principales
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [ventasPendientes, setVentasPendientes] = useState(0);
@@ -22,10 +24,10 @@ export const OfflineProvider = ({ children }) => {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productosProgress, setProductosProgress] = useState({ current: 0, total: 0 });
   
-  // ✅ NUEVO: useRef para tener el estado más actualizado en callbacks
+  // Ref para mantener estado actualizado en callbacks
   const isOnlineRef = useRef(isOnline);
 
-  // Actualizar ref cuando cambia el estado
+  // Sincronizar ref con estado
   useEffect(() => {
     isOnlineRef.current = isOnline;
   }, [isOnline]);
@@ -35,15 +37,14 @@ export const OfflineProvider = ({ children }) => {
     const inicializarSistema = async () => {
       try {
         await initDB();
-        console.log('✅ IndexedDB inicializada desde Context');
         
-        // Contar ventas pendientes solo si hay usuario CAJERO
+        // Contar ventas pendientes solo para cajeros
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         if (user.rol === 'CAJERO' || user.rol === 'cajero') {
           await updateVentasPendientes();
         }
       } catch (error) {
-        console.error('❌ Error inicializando sistema:', error);
+        console.error('Error inicializando sistema:', error);
       }
     };
     
@@ -62,11 +63,11 @@ export const OfflineProvider = ({ children }) => {
     }
   }, []);
 
-  // ✅ MEJORADO: Función de sincronización que usa ref en vez de state
+  // Sincronizar datos pendientes con el servidor
   const triggerSync = useCallback(async () => {
-    // ✅ USAR REF en vez de state para tener el valor más actualizado
+    // Usar ref para valor más actualizado
     if (!isOnlineRef.current || isSyncing) {
-      console.log(`⚠️ No se puede sincronizar: ${!isOnlineRef.current ? 'offline' : 'ya sincronizando'}`);
+      console.log(`No se puede sincronizar: ${!isOnlineRef.current ? 'offline' : 'ya sincronizando'}`);
       return { success: false, reason: 'offline_or_syncing' };
     }
 
@@ -74,61 +75,53 @@ export const OfflineProvider = ({ children }) => {
     setSyncError(null);
 
     try {
-      console.log('🔄 Iniciando sincronización...');
       const result = await syncPendingData();
       
       if (result.success) {
         setLastSyncTime(Date.now());
         await updateVentasPendientes();
-        console.log('✅ Sincronización completada exitosamente');
       } else {
         setSyncError(result.error || 'Error desconocido');
-        console.error('❌ Error en sincronización:', result.error);
+        console.error('Error en sincronización:', result.error);
       }
 
       return result;
     } catch (error) {
-      console.error('❌ Error durante sincronización:', error);
+      console.error('Error durante sincronización:', error);
       setSyncError(error.message);
       return { success: false, error: error.message };
     } finally {
       setIsSyncing(false);
     }
-  }, [isSyncing, updateVentasPendientes]); // ✅ Ya no depende de isOnline
+  }, [isSyncing, updateVentasPendientes]);
 
-  // ✅ MEJORADO: Escuchar cambios de conexión
+  // Escuchar cambios de conexión y sincronizar automáticamente
   useEffect(() => {
     const detector = getConnectionDetector();
     let prevOnlineState = isOnline;
     let syncTimeoutId = null;
     
     const unsubscribe = detector.subscribe((status, online) => {
-      console.log(`🌐 Estado de conexión: ${status} (previo: ${prevOnlineState ? 'online' : 'offline'}, nuevo: ${online ? 'online' : 'offline'})`);
       
-      // Actualizar estado inmediatamente
+      // Actualizar estado y ref inmediatamente
       setIsOnline(online);
-      isOnlineRef.current = online; // ✅ ACTUALIZAR REF INMEDIATAMENTE
+      isOnlineRef.current = online;
 
-      // ✅ CLAVE: Solo sincronizar si cambió de offline a online
+      // Sincronizar solo si cambió de offline a online
       if (!prevOnlineState && online && status === 'online') {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  if (user.rol === 'CAJERO' || user.rol === 'cajero') {
-    console.log('✅ Conexión restaurada - verificando sync y productos...');
+        if (user.rol === 'CAJERO' || user.rol === 'cajero') {
 
-    if (syncTimeoutId) clearTimeout(syncTimeoutId);
+          if (syncTimeoutId) clearTimeout(syncTimeoutId);
 
-    syncTimeoutId = setTimeout(async () => {
-      console.log('🔄 Ejecutando auto-sincronización...');
-      await triggerSync();
-
-      console.log('🔍 Verificando productos...');
-      await precargarProductosSiHaceFalta();
-    }, 3000);
-  }
-}
+          syncTimeoutId = setTimeout(async () => {
+            await triggerSync();
+            await precargarProductosSiHaceFalta();
+          }, 3000);
+        }
+      }
       
-      // Actualizar referencia del estado previo
       prevOnlineState = online;
     });
 
@@ -147,37 +140,33 @@ export const OfflineProvider = ({ children }) => {
       if (user.rol === 'CAJERO' || user.rol === 'cajero') {
         updateVentasPendientes();
       }
-    }, 10000); // Cada 10 segundos
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [updateVentasPendientes]);
 
-  // Función para precargar productos (solo CAJERO)
+  // Precargar productos manualmente (solo cajeros)
   const precargarProductos = useCallback(async () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.rol !== 'CAJERO' && user.rol !== 'cajero') {
-      console.log('⏭️ Precarga solo disponible para CAJERO');
       return { success: false, message: 'No disponible para este rol' };
     }
 
     if (!isOnlineRef.current) {
-      console.log('⏭️ Precarga requiere conexión');
       return { success: false, message: 'Sin conexión' };
     }
 
     try {
       setIsLoadingProducts(true);
-      console.log('🔄 Precargando productos para CAJERO...');
       
       await syncProductos((current, total) => {
         setProductosProgress({ current, total });
       });
       
-      console.log('✅ Productos precargados exitosamente');
       return { success: true };
       
     } catch (error) {
-      console.error('❌ Error precargando productos:', error);
+      console.error('Error precargando productos:', error);
       return { success: false, error: error.message };
     } finally {
       setIsLoadingProducts(false);
@@ -185,31 +174,29 @@ export const OfflineProvider = ({ children }) => {
     }
   }, []);
 
+  // Verificar y precargar productos si es necesario
   const precargarProductosSiHaceFalta = useCallback(async () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  if (user.rol !== 'CAJERO' && user.rol !== 'cajero') {
-    return;
-  }
-
-  if (!isOnlineRef.current) {
-    return;
-  }
-
-  try {
-    const { countProductos } = await import('../utils/indexedDB');
-    const count = await countProductos();
-
-    if (count === 0) {
-      console.log('📦 IndexedDB sin productos - iniciando precarga automática...');
-      await precargarProductos();
-    } else {
-      console.log(`📦 IndexedDB OK (${count} productos)`);
+    if (user.rol !== 'CAJERO' && user.rol !== 'cajero') {
+      return;
     }
-  } catch (error) {
-    console.error('❌ Error verificando productos:', error);
-  }
-}, [precargarProductos]);
+
+    if (!isOnlineRef.current) {
+      return;
+    }
+
+    try {
+      const { countProductos } = await import('../utils/indexedDB');
+      const count = await countProductos();
+
+      if (count === 0) {
+        await precargarProductos();
+      } 
+    } catch (error) {
+      console.error('Error verificando productos:', error);
+    }
+  }, [precargarProductos]);
 
   const value = {
     isOnline,

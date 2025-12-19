@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Edit2, Trash2, RefreshCw, Search, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { getProductos, getCategorias, createProducto, updateProducto, deleteProducto } from '../api/api';
@@ -5,6 +6,7 @@ import ProductoForm from './ProductoForm';
 import { useToast } from '../Toast';
 
 const Stock = () => {
+  // Estados principales
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -28,19 +30,19 @@ const Stock = () => {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [categorias, setCategorias] = useState(['todas']);
   
-  // Estados para autocompletado de categorías en filtro
+  // Estados para autocompletado de categorías
   const [categoriaInputFiltro, setCategoriaInputFiltro] = useState('');
   const [mostrarSugerenciasFiltro, setMostrarSugerenciasFiltro] = useState(false);
   const inputCategoriaFiltroRef = useRef(null);
   const sugerenciasFiltroRef = useRef(null);
   
-  // Refs
+  // Refs para control de peticiones y scroll infinito
   const observerRef = useRef();
   const debounceTimerRef = useRef(null);
   const abortControllerRef = useRef(null);
-  const requestIdRef = useRef(0); // ID único para cada petición
+  const requestIdRef = useRef(0);
 
-  // Anchos fijos de columnas
+  // Anchos fijos de columnas para tabla
   const COLUMN_WIDTHS = {
     producto: '25%',
     categoria: '12%',
@@ -52,29 +54,25 @@ const Stock = () => {
     acciones: '15%'
   };
 
-  // Debounce para búsqueda
+  // Debounce para búsqueda - evita llamadas excesivas al API
   useEffect(() => {
-    // Cancelar timer anterior
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
 
-    // Si el input está vacío, actualizar inmediatamente
     if (busqueda.trim() === '') {
       setBusquedaDebounced('');
       return;
     }
 
-    // Si tiene texto, aplicar debounce
-    const valorActual = busqueda; // Capturar el valor actual
+    const valorActual = busqueda;
     
     debounceTimerRef.current = setTimeout(() => {
       setBusquedaDebounced(valorActual);
       debounceTimerRef.current = null;
     }, 200);
 
-    // Cleanup al desmontar
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -83,24 +81,21 @@ const Stock = () => {
     };
   }, [busqueda]);
 
-  // Cargar categorías al montar
+  // Cargar categorías al iniciar
   useEffect(() => {
     cargarCategorias();
   }, []);
 
-  // Cargar productos cuando cambian los filtros DEBOUNCED
+  // Recargar productos cuando cambian los filtros
   useEffect(() => {
-    // Cancelar petición anterior si existe
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Resetear estados
     setProductos([]);
     setSkip(0);
     setHasMore(true);
     
-    // Cargar desde cero
     cargarProductos(0, true);
 
     return () => {
@@ -138,6 +133,7 @@ const Stock = () => {
     setMostrarSugerenciasFiltro(false);
   };
 
+  // Filtrar categorías según input del usuario
   const categoriasFiltradas = categorias.filter(cat => {
     if (!categoriaInputFiltro.trim()) return true;
     if (cat === 'todas') return 'todas las categorías'.includes(categoriaInputFiltro.toLowerCase());
@@ -148,6 +144,7 @@ const Stock = () => {
     return a.localeCompare(b, 'es', { sensitivity: 'base' });
   });
 
+  // Cerrar dropdown de categorías al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -164,16 +161,16 @@ const Stock = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Cargar productos con paginación
   const cargarProductos = async (skipValue, reset = false) => {
     const currentSkip = skipValue !== undefined ? skipValue : skip;
     
     if (!hasMore && !reset) return;
     
-    // Incrementar ID de petición y guardar el actual
+    // ID único para cada petición - evita condiciones de carrera
     requestIdRef.current += 1;
     const thisRequestId = requestIdRef.current;
     
-    // Crear nuevo AbortController para esta petición
     abortControllerRef.current = new AbortController();
     
     try {
@@ -193,7 +190,7 @@ const Stock = () => {
 
       const response = await getProductos(params);
       
-      // Verificar si esta petición sigue siendo la más reciente
+      // Verificar si esta sigue siendo la petición más reciente
       if (thisRequestId !== requestIdRef.current) {
         return;
       }
@@ -212,13 +209,11 @@ const Stock = () => {
       setHasMore(has_more);
 
     } catch (error) {
-      // No mostrar error si la petición fue cancelada
       if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
         console.error('Error cargando productos:', error);
         toast.error('Error al cargar productos');
       }
     } finally {
-      // Solo actualizar loading si esta es la petición más reciente
       if (thisRequestId === requestIdRef.current) {
         setLoading(false);
         setLoadingMore(false);
@@ -226,6 +221,7 @@ const Stock = () => {
     }
   };
 
+  // Intersection Observer para scroll infinito
   const lastProductRef = useCallback(node => {
     if (loading || loadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
@@ -293,6 +289,7 @@ const Stock = () => {
     }
   };
 
+  // Determinar estado del stock según niveles
   const getEstadoStock = (producto) => {
     if (producto.stock < 10) return { text: 'Crítico', color: '#fee2e2', textColor: '#991b1b' };
     if (producto.stock < producto.stock_minimo) return { text: 'Bajo', color: '#fef3c7', textColor: '#92400e' };
@@ -313,6 +310,7 @@ const Stock = () => {
     cargarProductos(0, true);
   };
 
+  // Componente skeleton para estado de carga
   const SkeletonRow = () => (
     <tr style={{ borderTop: '1px solid #e5e7eb' }}>
       <td style={{ padding: '0.75rem', width: COLUMN_WIDTHS.producto }}>
@@ -415,6 +413,7 @@ const Stock = () => {
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
+      {/* Animaciones CSS */}
       <style>
         {`
           @keyframes pulse {
@@ -438,6 +437,7 @@ const Stock = () => {
         `}
       </style>
       
+      {/* Panel de filtros */}
       <div style={{
         backgroundColor: 'white',
         padding: filtrosColapsados ? '0.75rem' : '1rem', 
@@ -447,6 +447,7 @@ const Stock = () => {
         flexShrink: 0,
         transition: 'padding 0.3s ease'
       }}>
+        {/* Header con título y botones */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: filtrosColapsados ? 0 : '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Control de Stock</h2>
@@ -483,8 +484,10 @@ const Stock = () => {
           </div>
         </div>
 
+        {/* Controles de filtros */}
         {!filtrosColapsados && (
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+            {/* Buscador */}
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#374151', marginBottom: '0.375rem' }}>
                 Buscar por nombre o categoría
@@ -508,6 +511,7 @@ const Stock = () => {
               </div>
             </div>
 
+            {/* Filtro por categoría con autocompletado */}
             <div style={{ position: 'relative' }}>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#374151', marginBottom: '0.375rem' }}>
                 Categoría
@@ -528,6 +532,7 @@ const Stock = () => {
                 autoComplete="off"
               />
               
+              {/* Dropdown de sugerencias */}
               {mostrarSugerenciasFiltro && (
                 <div
                   ref={sugerenciasFiltroRef}
@@ -592,6 +597,7 @@ const Stock = () => {
               )}
             </div>
 
+            {/* Filtro por estado de stock */}
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#374151', marginBottom: '0.375rem' }}>
                 Estado de Stock
@@ -609,6 +615,7 @@ const Stock = () => {
               </select>
             </div>
 
+            {/* Botón limpiar filtros */}
             <div>
               <button
                 onClick={limpiarFiltros}
@@ -632,6 +639,7 @@ const Stock = () => {
         )}
       </div>
 
+      {/* Tabla de productos */}
       <div style={{
         backgroundColor: 'white',
         borderRadius: '0.5rem',
@@ -782,6 +790,7 @@ const Stock = () => {
           </table>
         )}
         
+        {/* Indicador de carga al cargar más */}
         {loadingMore && (
           <div style={{ 
             padding: '1rem', 
@@ -792,6 +801,7 @@ const Stock = () => {
           </div>
         )}
         
+        {/* Mensaje cuando se cargaron todos */}
         {!hasMore && productos.length > 0 && (
           <div style={{ 
             padding: '1rem', 
@@ -799,11 +809,12 @@ const Stock = () => {
             color: '#6b7280',
             fontSize: '0.875rem'
           }}>
-            <p>✓ Todos los productos cargados ({total} total)</p>
+            <p>Todos los productos cargados ({total} total)</p>
           </div>
         )}
       </div>
 
+      {/* Modal de confirmación de eliminación */}
       {showDeleteModal && productoAEliminar && (
         <div style={{
           position: 'fixed',
@@ -905,6 +916,7 @@ const Stock = () => {
         </div>
       )}
 
+      {/* Modal de formulario de producto */}
       {showForm && (
         <ProductoForm
           producto={productoEdit}

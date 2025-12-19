@@ -41,7 +41,7 @@ window.addEventListener('error', e => {
 const OfflineBanner = () => {
   const { isOnline, isSyncing, ventasPendientes, triggerSync, isLoadingProducts, productosProgress } = useOffline();
 
-  // ✅ NUEVO: Solo mostrar banner para CAJERO
+  // Solo mostrar banner para CAJERO
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   if (user.rol !== 'CAJERO' && user.rol !== 'cajero') {
     return null; // ADMIN y SUPERADMIN no ven banner
@@ -135,7 +135,7 @@ const OfflineBanner = () => {
       ) : !isOnline ? (
         <>
           <WifiOff size={18} />
-          <span>⚠️ MODO OFFLINE - Las ventas se guardarán localmente</span>
+          <span> MODO OFFLINE - Las ventas se guardarán localmente</span>
           {ventasPendientes > 0 && (
             <span style={{ 
               backgroundColor: '#991b1b', 
@@ -151,7 +151,7 @@ const OfflineBanner = () => {
       ) : ventasPendientes > 0 ? (
         <>
           <Wifi size={18} />
-          <span>📤 {ventasPendientes} venta{ventasPendientes !== 1 ? 's' : ''} pendiente{ventasPendientes !== 1 ? 's' : ''} de sincronizar</span>
+          <span> {ventasPendientes} venta{ventasPendientes !== 1 ? 's' : ''} pendiente{ventasPendientes !== 1 ? 's' : ''} de sincronizar</span>
           <button
             onClick={triggerSync}
             style={{
@@ -192,7 +192,7 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
-  const { isOnline, ventasPendientes, precargarProductos } = useOffline(); // ✅ AGREGADO precargarProductos
+  const { isOnline, ventasPendientes, precargarProductos } = useOffline(); 
 
   useEffect(() => {
     // Verificar si hay sesión guardada
@@ -205,29 +205,24 @@ function AppContent() {
     }
   }, []);
 
-  // ✅ MODIFICADO: Ahora es async y precarga productos para CAJERO
+  // precarga productos 
   const handleLoginSuccess = async (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
 
-    // ✅ NUEVO: Precargar productos SOLO si es CAJERO
+    // Precargar productos SOLO si es CAJERO
     if (userData.rol === 'CAJERO' || userData.rol === 'cajero') {
-      console.log('👤 Usuario CAJERO detectado - Iniciando precarga de productos...');
-      
       try {
         const result = await precargarProductos();
         if (result.success) {
-          console.log('✅ Productos listos para modo offline');
         } else {
-          console.log('⚠️ No se pudieron precargar productos:', result.message);
+          console.log('No se pudieron precargar productos:', result.message);
         }
       } catch (error) {
-        console.error('⚠️ Error en precarga:', error);
+        console.error(' Error en precarga:', error);
         // No es crítico, el sistema puede funcionar sin precarga
       }
-    } else {
-      console.log(`👤 Usuario ${userData.rol} - Modo online únicamente (sin precarga)`);
-    }
+    } 
   };
 
   const handleLogout = () => {
@@ -493,7 +488,7 @@ function AppContent() {
   menuItems.push({
     id: "ventas-detalle",
     nombre: "Detalle Ventas",
-    icono: BarChart3,  // Puedes usar otro icono si prefieres
+    icono: BarChart3,  
     componente: VentasDetalle,
   });
 }

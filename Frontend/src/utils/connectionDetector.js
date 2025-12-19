@@ -14,8 +14,6 @@ class ConnectionDetector {
     
     // Inicializar
     this.init();
-    
-    console.log('🌐 Connection Detector inicializado. Estado:', this.isOnline ? 'ONLINE' : 'OFFLINE');
   }
 
   init() {
@@ -37,7 +35,6 @@ class ConnectionDetector {
   async checkConnection() {
   if (!navigator.onLine) {
     if (this.isOnline) {
-      console.log('🌐 Cambio de conexión detectado: OFFLINE');
       this.isOnline = false;
       this.lastStatusChange = Date.now();
       this.notifyListeners('offline', false);
@@ -62,7 +59,6 @@ class ConnectionDetector {
     const isNowOnline = !!(response && response.ok);
 
     if (wasOnline !== isNowOnline) {
-      console.log(`🌐 Cambio de conexión detectado: ${isNowOnline ? 'ONLINE' : 'OFFLINE'}`);
       this.isOnline = isNowOnline;
       this.lastStatusChange = Date.now();
       this.notifyListeners(isNowOnline ? 'online' : 'offline', isNowOnline);
@@ -72,7 +68,6 @@ class ConnectionDetector {
 
   } catch (error) {
     if (this.isOnline) {
-      console.log('🌐 Conexión perdida (error en verificación)');
       this.isOnline = false;
       this.lastStatusChange = Date.now();
       this.notifyListeners('offline', false);
@@ -105,20 +100,16 @@ class ConnectionDetector {
     }
   }
 
-  // Evento online nativo
+  // Evento online 
   handleOnline() {
-    console.log('🌐 Evento "online" nativo detectado');
-    
     // Verificar conexión real antes de notificar
     setTimeout(() => {
       this.checkConnection();
     }, 500);
   }
 
-  // Evento offline nativo
+  // Evento offline 
   handleOffline() {
-    console.log('🌐 Evento "offline" nativo detectado');
-    
     if (this.isOnline) {
       this.isOnline = false;
       this.lastStatusChange = Date.now();
@@ -155,12 +146,10 @@ class ConnectionDetector {
     document.removeEventListener('click', this.checkConnectionThrottled);
     this.stopPolling();
     this.listeners = [];
-    console.log('🌐 Connection Detector destruido');
   }
 
   // Método para forzar verificación manual
   forceCheck() {
-    console.log('🔄 Verificación manual de conexión...');
     return this.checkConnection();
   }
 
@@ -185,8 +174,6 @@ export const getConnectionDetector = () => {
   return detectorInstance;
 };
 
-// ✅ IMPORTANTE: Exportar isOnline como función para compatibilidad
-// Esta función es usada por api.js
 export const isOnline = () => {
   const detector = getConnectionDetector();
   return detector.isOnline;

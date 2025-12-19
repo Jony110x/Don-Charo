@@ -363,7 +363,6 @@ async def exportar_ventas_excel(
 )
 
 
-
 @router.get("/estadisticas")
 def obtener_estadisticas(
     fecha_desde: Optional[str] = Query(None),

@@ -9,39 +9,6 @@ from typing import Optional, List
 
 router = APIRouter(prefix="/users", tags=["administracion-usuarios"])
 
-# Schemas
-class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-    nombre_completo: Optional[str] = None
-    rol: str
-
-class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
-    nombre_completo: Optional[str] = None
-    rol: Optional[str] = None
-    activo: Optional[bool] = None
-
-class UserListResponse(BaseModel):
-    id: int
-    username: str
-    email: str
-    nombre_completo: Optional[str]
-    rol: str
-    activo: bool
-    fecha_creacion: datetime
-    ultimo_acceso: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
-
-class UsersListResponse(BaseModel):
-    usuarios: List[UserListResponse]
-    total: int
-
 # Middleware para verificar que sea SUPERADMIN
 def verify_superadmin(current_user: models.Usuario = Depends(get_current_user)):
     if current_user.rol.upper() != "SUPERADMIN":
@@ -51,7 +18,7 @@ def verify_superadmin(current_user: models.Usuario = Depends(get_current_user)):
         )
     return current_user
 
-@router.get("/", response_model=UsersListResponse)
+@router.get("/", response_model=schemas.UsersListResponse)
 def get_all_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -95,7 +62,7 @@ def get_all_users(
         "total": total
     }
 
-@router.get("/{user_id}", response_model=UserListResponse)
+@router.get("/{user_id}", response_model=schemas.UserListResponse)
 def get_user_by_id(
     user_id: int,
     db: Session = Depends(get_db),
@@ -113,9 +80,9 @@ def get_user_by_id(
         )
     return user
 
-@router.post("/", response_model=UserListResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.UserListResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
-    user_data: UserCreate,
+    user_data: schemas.UserCreate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(verify_superadmin)
 ):
@@ -174,10 +141,10 @@ def create_user(
     
     return new_user
 
-@router.put("/{user_id}", response_model=UserListResponse)
+@router.put("/{user_id}", response_model=schemas.UserListResponse)
 def update_user(
     user_id: int,
-    user_data: UserUpdate,
+    user_data: schemas.UserUpdate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(verify_superadmin)
 ):

@@ -10,6 +10,7 @@ const Login = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Actualiza los campos del formulario
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -18,6 +19,7 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
   };
 
+  // Procesa el login y guarda credenciales
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -27,7 +29,6 @@ const Login = ({ onLoginSuccess }) => {
       const response = await login(formData);
       const { access_token, user } = response.data;
       
-      // Guardar token y usuario en localStorage
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user));
       
@@ -57,7 +58,7 @@ const Login = ({ onLoginSuccess }) => {
         width: '100%',
         maxWidth: '400px'
       }}>
-        {/* Logo/Header */}
+        {/* Header con logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
             width: '80px',
@@ -79,7 +80,7 @@ const Login = ({ onLoginSuccess }) => {
           </p>
         </div>
 
-        {/* Error Alert */}
+        {/* Mensaje de error */}
         {error && (
           <div style={{
             backgroundColor: '#fee2e2',
@@ -96,7 +97,7 @@ const Login = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* Form */}
+        {/* Formulario de login */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{

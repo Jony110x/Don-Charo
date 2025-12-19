@@ -157,7 +157,6 @@ def productos_mas_vendidos(
         "total": float(p.total)
     } for p in productos]
 
-
 @router.get("/ganancias")
 def ganancias(
     periodo: str = Query("mes"),

@@ -1,3 +1,4 @@
+/* eslint-disable import/no-anonymous-default-export */
 import { 
   getVentasPendientes, 
   markVentaSincronizada, 
@@ -10,8 +11,6 @@ const BATCH_SIZE = 500;
 const MAX_PARALLEL_BATCHES = 3; 
 
 export const syncPendingData = async () => {
-  console.log('🔄 Iniciando sincronización de datos pendientes...');
-  
   const result = {
     success: false,
     ventasSincronizadas: 0,
@@ -20,21 +19,17 @@ export const syncPendingData = async () => {
   };
 
   try {
-    // 1. Obtener ventas pendientes
+    //  Obtener ventas pendientes
     const ventasPendientes = await getVentasPendientes();
-    console.log(`📦 ${ventasPendientes.length} ventas pendientes encontradas`);
 
     if (ventasPendientes.length === 0) {
-      console.log('✅ No hay ventas pendientes para sincronizar');
       result.success = true;
       return result;
     }
 
-    // 2. Sincronizar cada venta
+    //  Sincronizar cada venta
     for (const venta of ventasPendientes) {
       try {
-        console.log(`📤 Enviando venta ID ${venta.id}...`);
-        
         // Preparar datos de venta para el servidor
         const ventaData = {
           items: venta.items,
@@ -46,16 +41,15 @@ export const syncPendingData = async () => {
         const response = await api.post('/ventas/', ventaData);
         
         if (response.status === 200 || response.status === 201) {
-          // ✅ Marcar como sincronizada usando TU función
+          //  Marcar como sincronizada usando TU función
           await markVentaSincronizada(venta.id);
           result.ventasSincronizadas++;
-          console.log(`✅ Venta ${venta.id} sincronizada exitosamente`);
         } else {
           throw new Error(`Status ${response.status}`);
         }
         
       } catch (error) {
-        console.error(`❌ Error sincronizando venta ${venta.id}:`, error);
+        console.error(` Error sincronizando venta ${venta.id}:`, error);
         result.errores.push({
           ventaId: venta.id,
           error: error.message
@@ -63,17 +57,15 @@ export const syncPendingData = async () => {
       }
     }
 
-    // 3. Evaluar resultado
+    //  Evaluar resultado
     if (result.errores.length === 0) {
       result.success = true;
-      console.log(`✅ Sincronización completada: ${result.ventasSincronizadas} ventas`);
     } else {
       result.success = result.ventasSincronizadas > 0;
-      console.warn(`⚠️ Sincronización parcial: ${result.ventasSincronizadas}/${ventasPendientes.length} ventas`);
     }
 
   } catch (error) {
-    console.error('❌ Error general en sincronización:', error);
+    console.error(' Error general en sincronización:', error);
     result.error = error.message;
   }
 
@@ -81,9 +73,9 @@ export const syncPendingData = async () => {
 };
 
 export const syncProductos = async (onProgress = null) => {
-  console.log('📥 Descargando productos del servidor (MODO OPTIMIZADO)...');
   
   try {
+    // eslint-disable-next-line no-unused-vars
     const startTime = Date.now();
     let allProductos = [];
     let skip = 0;
@@ -152,13 +144,6 @@ export const syncProductos = async (onProgress = null) => {
         onProgress(totalSincronizados, estimatedTotal);
       }
       
-      // Log de progreso cada 1000 productos
-      if (totalSincronizados % 1000 === 0 || !anyHasMore) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const speed = Math.round(totalSincronizados / elapsed);
-        console.log(`📦 ${totalSincronizados} productos descargados (${speed} prod/seg)`);
-      }
-      
       // Si ningún batch tiene más datos, terminar
       if (!anyHasMore) {
         hasMore = false;
@@ -171,18 +156,11 @@ export const syncProductos = async (onProgress = null) => {
     }
     
     if (allProductos.length === 0) {
-      console.warn('⚠️ No se recibieron productos del servidor');
+      console.warn(' No se recibieron productos del servidor');
       return false;
     }
     
-    // ✅ Guardar usando TU función saveProductos (ya hace bulk insert)
-    console.log(`💾 Guardando ${allProductos.length} productos en IndexedDB...`);
-    await saveProductos(allProductos);
-    
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    const avgSpeed = Math.round(allProductos.length / totalTime);
-    
-    console.log(`✅ ${allProductos.length} productos sincronizados en ${totalTime}s (${avgSpeed} prod/seg)`);
+    await saveProductos(allProductos); 
     
     // Callback final con total exacto
     if (onProgress) {
@@ -191,7 +169,7 @@ export const syncProductos = async (onProgress = null) => {
     
     return true;
   } catch (error) {
-    console.error('❌ Error sincronizando productos:', error);
+    console.error(' Error sincronizando productos:', error);
     throw error;
   }
 };
@@ -200,7 +178,6 @@ export const syncProductos = async (onProgress = null) => {
  * Forzar sincronización completa (manual)
  */
 export const forceFullSync = async () => {
-  console.log('🔄 Forzando sincronización completa...');
   
   try {
     // 1. Sincronizar ventas pendientes
@@ -214,7 +191,7 @@ export const forceFullSync = async () => {
       ...ventasResult
     };
   } catch (error) {
-    console.error('❌ Error en sincronización completa:', error);
+    console.error(' Error en sincronización completa:', error);
     return {
       success: false,
       error: error.message

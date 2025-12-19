@@ -9,12 +9,6 @@ from typing import Optional
 
 router = APIRouter(prefix="/user", tags=["usuario"])
 
-# Schema para actualizar perfil
-class UserProfileUpdate(BaseModel):
-    username: Optional[str] = None
-    nombre_completo: Optional[str] = None
-    password: Optional[str] = None
-
 @router.get("/profile", response_model=schemas.UsuarioResponse)
 def get_user_profile(current_user: models.Usuario = Depends(get_current_user)):
     """
@@ -24,7 +18,7 @@ def get_user_profile(current_user: models.Usuario = Depends(get_current_user)):
 
 @router.put("/profile", response_model=schemas.UsuarioResponse)
 def update_user_profile(
-    user_update: UserProfileUpdate,
+    user_update: schemas.UserProfileUpdate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):

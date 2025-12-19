@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { Users as UsersIcon, UserPlus, Edit2, Trash2, X, Save, Shield, CheckCircle, XCircle } from 'lucide-react';
 import { getAllUsers, createUser, updateUser, deleteUser } from '../api/api';
@@ -26,18 +27,18 @@ const Users = () => {
     cargarUsuarios();
   }, []);
 
+  // Cargar lista de usuarios desde el API
   const cargarUsuarios = async () => {
     try {
       setLoading(true);
       const response = await getAllUsers();
       
-      // La respuesta viene como { usuarios: [...], total: 3 }
       const usuariosData = response.data.usuarios || [];
     
       setUsuarios(usuariosData);
     } catch (error) {
-      console.error('❌ Error cargando usuarios:', error);
-      console.error('❌ Error response:', error.response);
+      console.error('Error cargando usuarios:', error);
+      console.error('Error response:', error.response);
       toast.error('Error al cargar usuarios');
       setUsuarios([]);
     } finally {
@@ -45,6 +46,7 @@ const Users = () => {
     }
   };
 
+  // Abrir modal para crear o editar usuario
   const handleOpenModal = (mode, user = null) => {
     setModalMode(mode);
     setSelectedUser(user);
@@ -74,6 +76,7 @@ const Users = () => {
     setShowModal(true);
   };
 
+  // Cerrar modal y limpiar formulario
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedUser(null);
@@ -88,6 +91,7 @@ const Users = () => {
     });
   };
 
+  // Actualizar campos del formulario
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -96,6 +100,7 @@ const Users = () => {
     }));
   };
 
+  // Validar y enviar formulario (crear o actualizar)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -148,6 +153,7 @@ const Users = () => {
     }
   };
 
+  // Eliminar usuario con confirmación
   const handleDelete = async (user) => {
     if (!window.confirm(`¿Estás seguro de eliminar al usuario "${user.username}"?`)) {
       return;
@@ -164,6 +170,7 @@ const Users = () => {
     }
   };
 
+  // Obtener estilos del badge según el rol
   const getRoleBadge = (rol) => {
     const roleUpper = (rol || '').toUpperCase();
     switch (roleUpper) {
@@ -178,6 +185,7 @@ const Users = () => {
     }
   };
 
+  // Formatear fecha de último acceso
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('es-AR', {
@@ -189,6 +197,7 @@ const Users = () => {
     });
   };
 
+  // Pantalla de carga
   if (loading) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -199,6 +208,7 @@ const Users = () => {
 
   return (
     <div style={{ padding: '1.5rem' }}>
+      {/* Header con título y botón de nuevo usuario */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -240,6 +250,7 @@ const Users = () => {
         </button>
       </div>
 
+      {/* Tabla de usuarios */}
       <div style={{
         backgroundColor: 'white',
         borderRadius: '0.75rem',
@@ -464,6 +475,7 @@ const Users = () => {
         </div>
       </div>
 
+      {/* Modal para crear/editar usuario */}
       {showModal && (
         <div style={{
           position: 'fixed',
@@ -486,6 +498,7 @@ const Users = () => {
             overflow: 'auto',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }}>
+            {/* Header del modal */}
             <div style={{
               padding: '1.5rem',
               borderBottom: '1px solid #e5e7eb',
@@ -514,6 +527,7 @@ const Users = () => {
               </button>
             </div>
 
+            {/* Formulario */}
             <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div>
@@ -648,7 +662,7 @@ const Users = () => {
                     borderRadius: '0.5rem'
                   }}>
                     <p style={{ fontSize: '0.875rem', color: '#92400e', margin: 0 }}>
-                      💡 Deja los campos de contraseña vacíos si no deseas cambiarla
+                      Deja los campos de contraseña vacíos si no deseas cambiarla
                     </p>
                   </div>
                 )}
@@ -708,6 +722,7 @@ const Users = () => {
                 </div>
               </div>
 
+              {/* Botones de acción */}
               <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
                 <button
                   type="submit"

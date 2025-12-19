@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, createContext, useContext } from 'react';
 import { X, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 // Context para gestionar los toasts globalmente

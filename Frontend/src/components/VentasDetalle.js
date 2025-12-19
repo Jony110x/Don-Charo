@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Download, 
@@ -12,6 +13,7 @@ import {
 import api from '../api/api';
 
 const VentasDetalle = () => {
+  // Estados principales
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -20,7 +22,7 @@ const VentasDetalle = () => {
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
   
-  // Filtros
+  // Estados de filtros
   const [filtros, setFiltros] = useState({
     fecha_desde: '',
     fecha_hasta: '',
@@ -29,17 +31,15 @@ const VentasDetalle = () => {
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   
-  // Expandir detalles
+  // Estados de UI
   const [ventaExpandida, setVentaExpandida] = useState(null);
-  
-  // Estadísticas
   const [estadisticas, setEstadisticas] = useState(null);
   
   const LIMIT = 50;
   const observerRef = useRef();
   const ventasContainerRef = useRef();
 
-  // Cargar ventas
+  // Cargar ventas con paginación
   const cargarVentas = useCallback(async (skipValue = 0, reset = false) => {
     if (!hasMore && !reset) return;
     
@@ -56,6 +56,7 @@ const VentasDetalle = () => {
         ...filtros
       };
 
+      // Limpiar parámetros vacíos
       Object.keys(params).forEach(key => {
         if (params[key] === '' || params[key] === null) {
           delete params[key];
@@ -83,7 +84,7 @@ const VentasDetalle = () => {
     }
   }, [filtros, hasMore]);
 
-  // Cargar estadísticas
+  // Cargar estadísticas según filtros
   const cargarEstadisticas = useCallback(async () => {
     try {
       const params = {};
@@ -97,23 +98,22 @@ const VentasDetalle = () => {
     }
   }, [filtros.fecha_desde, filtros.fecha_hasta]);
 
-  // Cargar inicial
+  // Carga inicial
   useEffect(() => {
     cargarVentas(0, true);
     cargarEstadisticas();
   }, []);
 
-  // ✅ FIX: No cerrar filtros al aplicar
+  // Aplicar filtros y recargar
   const aplicarFiltros = () => {
     setVentas([]);
     setSkip(0);
     setHasMore(true);
     cargarVentas(0, true);
     cargarEstadisticas();
-    // ✅ REMOVIDO: setMostrarFiltros(false);
   };
 
-  // Limpiar filtros
+  // Limpiar todos los filtros
   const limpiarFiltros = () => {
     setFiltros({
       fecha_desde: '',
@@ -144,7 +144,7 @@ const VentasDetalle = () => {
     if (node) observerRef.current.observe(node);
   }, [loading, loadingMore, hasMore, skip, cargarVentas]);
 
-  // ✅ FIX: Exportar con descarga directa del blob
+  // Exportar a Excel con descarga directa
   const exportarExcel = async () => {
     try {
       setExportando(true);
@@ -155,14 +155,11 @@ const VentasDetalle = () => {
       if (filtros.usuario_id) params.usuario_id = filtros.usuario_id;
       if (filtros.metodo_pago) params.metodo_pago = filtros.metodo_pago;
 
-      // Construir URL con parámetros
       const queryString = new URLSearchParams(params).toString();
       const url = `${api.defaults.baseURL}/ventas-detalle/exportar${queryString ? '?' + queryString : ''}`;
       
-      // Obtener token
       const token = localStorage.getItem('token');
 
-      // Fetch con blob
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -174,10 +171,7 @@ const VentasDetalle = () => {
         throw new Error('Error al exportar');
       }
 
-      // Obtener blob
       const blob = await response.blob();
-      
-      // Crear link de descarga
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -198,7 +192,7 @@ const VentasDetalle = () => {
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
 
-      console.log('✅ Excel descargado exitosamente');
+      console.log('Excel descargado exitosamente');
     } catch (error) {
       console.error('Error exportando:', error);
       alert('Error al exportar a Excel. Verifica la consola.');
@@ -207,12 +201,12 @@ const VentasDetalle = () => {
     }
   };
 
-  // Toggle expandir venta
+  // Alternar expansión de detalles de venta
   const toggleExpandir = (ventaId) => {
     setVentaExpandida(ventaExpandida === ventaId ? null : ventaId);
   };
 
-  // Formato de fecha
+  // Formatear fecha
   const formatFecha = (fecha) => {
     const date = new Date(fecha);
     return date.toLocaleDateString('es-AR', {
@@ -224,7 +218,7 @@ const VentasDetalle = () => {
     });
   };
 
-  // Formato de moneda
+  // Formatear moneda
   const formatMoney = (amount) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -233,15 +227,14 @@ const VentasDetalle = () => {
   };
 
   return (
-    // ✅ FIX: Container con altura fija para que solo el contenido tenga scroll
     <div style={{ 
       height: 'calc(100vh - 180px)', 
       display: 'flex', 
       flexDirection: 'column',
       padding: '0.5rem',
-      overflow: 'hidden' // ✅ Sin scroll en el contenedor principal
+      overflow: 'hidden'
     }}>
-      {/* Header - FIJO */}
+      {/* Header fijo */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -306,7 +299,7 @@ const VentasDetalle = () => {
         </div>
       </div>
 
-      {/* Panel de filtros - FIJO */}
+      {/* Panel de filtros */}
       {mostrarFiltros && (
         <div style={{
           backgroundColor: '#f3f4f6',
@@ -410,7 +403,7 @@ const VentasDetalle = () => {
         </div>
       )}
 
-      {/* Estadísticas - FIJO */}
+      {/* Tarjetas de estadísticas */}
       {estadisticas && (
         <div style={{
           display: 'grid',
@@ -477,12 +470,12 @@ const VentasDetalle = () => {
         </div>
       )}
 
-      {/* ✅ FIX: Container de ventas con SCROLL */}
+      {/* Container de ventas con scroll */}
       <div 
         ref={ventasContainerRef}
         style={{ 
           flex: 1,
-          overflowY: 'auto', // ✅ SCROLL SOLO AQUÍ
+          overflowY: 'auto',
           paddingRight: '0.5rem'
         }}
       >
@@ -653,13 +646,14 @@ const VentasDetalle = () => {
 
             {!hasMore && ventas.length > 0 && (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-                ✓ Todas las ventas cargadas ({total} total)
+                Todas las ventas cargadas ({total} total)
               </div>
             )}
           </>
         )}
       </div>
 
+      {/* Animación de spinner */}
       <style>
         {`
           @keyframes spin {

@@ -1,9 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { X, User as UserIcon, Lock, Mail, Shield, Save, Edit2 } from 'lucide-react';
 import { getUserProfile, updateUserProfile } from '../api/api';
 import { useToast } from '../Toast';
 
-const User = ({ onClose, currentUser, onUserUpdate }) => {
+const Profile = ({ onClose, currentUser, onUserUpdate }) => {
   const toast = useToast();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
     cargarDatosUsuario();
   }, []);
 
+  // Cargar datos del perfil del usuario
   const cargarDatosUsuario = async () => {
     try {
       setLoading(true);
@@ -40,6 +42,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
     }
   };
 
+  // Actualizar campos del formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -48,16 +51,15 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
     }));
   };
 
+  // Validar y enviar actualización de perfil
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validar username
     if (!formData.username || formData.username.trim().length < 3) {
       toast.error('El nombre de usuario debe tener al menos 3 caracteres');
       return;
     }
     
-    // Validar que las contraseñas coincidan si se está cambiando
     if (formData.password || formData.password_confirm) {
       if (formData.password !== formData.password_confirm) {
         toast.error('Las contraseñas no coinciden');
@@ -78,20 +80,18 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
         nombre_completo: formData.nombre_completo
       };
       
-      // Solo enviar password si se está cambiando
       if (formData.password) {
         dataToSend.password = formData.password;
       }
 
       const response = await updateUserProfile(dataToSend);
       
-      // Actualizar el usuario en localStorage
+      // Actualizar usuario en localStorage
       const savedUser = JSON.parse(localStorage.getItem('user'));
       savedUser.username = response.data.username;
       savedUser.nombre_completo = response.data.nombre_completo;
       localStorage.setItem('user', JSON.stringify(savedUser));
       
-      // Notificar al componente padre para actualizar el header
       if (onUserUpdate) {
         onUserUpdate(savedUser);
       }
@@ -100,7 +100,6 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
       setUserData(response.data);
       setEditMode(false);
       
-      // Limpiar campos de contraseña
       setFormData(prev => ({
         ...prev,
         password: '',
@@ -116,6 +115,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
     }
   };
 
+  // Obtener color y texto del badge según el rol
   const getRoleBadgeColor = (rol) => {
     const roleUpper = (rol || '').toUpperCase();
     switch (roleUpper) {
@@ -130,6 +130,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
     }
   };
 
+  // Pantalla de carga
   if (loading) {
     return (
       <div style={{
@@ -223,7 +224,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
           </button>
         </div>
 
-        {/* Contenido con scroll interno */}
+        {/* Contenido con scroll */}
         <div style={{ 
           padding: '0.8rem',
           overflowY: 'auto',
@@ -232,7 +233,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
           {!editMode ? (
             // Modo Vista
             <div>
-              {/* Avatar y rol - COMPRIMIDO */}
+              {/* Avatar y rol */}
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -280,7 +281,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
                 </span>
               </div>
 
-              {/* Información - COMPRIMIDA */}
+              {/* Información del usuario */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{
                   padding: '0.75rem',
@@ -396,7 +397,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
               </div>
             </div>
           ) : (
-            // Modo Edición - COMPRIMIDO
+            // Modo Edición
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
@@ -461,7 +462,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
                   borderRadius: '0.5rem'
                 }}>
                   <p style={{ fontSize: '0.75rem', color: '#92400e', margin: 0 }}>
-                    💡 Deja los campos de contraseña vacíos si no deseas cambiarla
+                    Deja los campos de contraseña vacíos si no deseas cambiarla
                   </p>
                 </div>
 
@@ -520,7 +521,7 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
                 </div>
               </div>
 
-              {/* Botones */}
+              {/* Botones de acción */}
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                 <button
                   type="submit"
@@ -593,4 +594,4 @@ const User = ({ onClose, currentUser, onUserUpdate }) => {
   );
 };
 
-export default User;
+export default Profile;

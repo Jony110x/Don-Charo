@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { getCategorias } from '../api/api';
@@ -5,6 +7,8 @@ import { useToast } from '../Toast';
 
 const ProductoForm = ({ producto, onClose, onSubmit }) => {
   const toast = useToast();
+  
+  // Estado del formulario
   const [formData, setFormData] = useState({
     nombre: producto?.nombre || '',
     descripcion: producto?.descripcion || '',
@@ -16,10 +20,11 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     codigo_barras: producto?.codigo_barras || ''
   });
 
+  // Estados para categorías
   const [categoriaInput, setCategoriaInput] = useState(producto?.categoria || '');
   const [categorias, setCategorias] = useState([]);
-  const [categoriasCache, setCategoriasCache] = useState([]); // Cache para búsqueda local
-  const [sugerenciasLocales, setSugerenciasLocales] = useState([]); // Sugerencias filtradas localmente
+  const [categoriasCache, setCategoriasCache] = useState([]);
+  const [sugerenciasLocales, setSugerenciasLocales] = useState([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   
   // Estados de paginación para categorías
@@ -29,12 +34,13 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
   const [loadingCategorias, setLoadingCategorias] = useState(false);
   const LIMIT_CATEGORIAS = 20;
   
+  // Referencias
   const inputCategoriaRef = useRef(null);
   const sugerenciasRef = useRef(null);
   const contenedorScrollRef = useRef(null);
   const observerCategoriasRef = useRef(null);
   const timerBusquedaRef = useRef(null);
-  const scrollAjustadoRef = useRef(false); // Para controlar si ya se ajustó el scroll
+  const scrollAjustadoRef = useRef(false);
 
   // Limpiar timer al desmontar
   useEffect(() => {
@@ -49,7 +55,6 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
   const ajustarScrollModal = useCallback(() => {
     if (!inputCategoriaRef.current || !contenedorScrollRef.current) return;
     
-    // Esperar a que el dropdown se renderice completamente
     requestAnimationFrame(() => {
       setTimeout(() => {
         if (!sugerenciasRef.current) return;
@@ -58,11 +63,9 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
         const contenedorRect = contenedorScrollRef.current.getBoundingClientRect();
         const sugerenciasRect = sugerenciasRef.current.getBoundingClientRect();
         
-        // Calcular el espacio disponible debajo del input
         const espacioInferior = contenedorRect.bottom - inputRect.bottom;
         const alturaDropdown = Math.min(sugerenciasRect.height, 200);
         
-        // Si el dropdown no cabe, hacer scroll para mostrarlo completo
         if (espacioInferior < alturaDropdown + 20) {
           const scrollAmount = inputRect.top - contenedorRect.top + 
                               contenedorScrollRef.current.scrollTop - 20;
@@ -72,11 +75,11 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
             behavior: 'smooth'
           });
         }
-      }, 100); // Delay más largo para asegurar que todo se renderizó
+      }, 100);
     });
   }, []);
 
-  // Ajustar scroll cuando aparecen o cambian las sugerencias
+  // Ajustar scroll cuando aparecen sugerencias
   useEffect(() => {
     if (mostrarSugerencias && sugerenciasLocales.length > 0 && !scrollAjustadoRef.current) {
       ajustarScrollModal();
@@ -84,11 +87,10 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     }
   }, [mostrarSugerencias, sugerenciasLocales, ajustarScrollModal]);
 
-  // Cargar todas las categorías al inicio para búsqueda local rápida
+  // Cargar cache inicial de categorías para búsqueda local rápida
   useEffect(() => {
     const cargarCategoriasIniciales = async () => {
       try {
-        // Cargar 100 categorías para tener un buen cache local
         const response = await getCategorias({ skip: 0, limit: 100 });
         
         let categoriasIniciales = [];
@@ -98,7 +100,6 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
           categoriasIniciales = response.data.categorias;
         }
         
-        console.log('✅ Cache de categorías cargado:', categoriasIniciales.length);
         setCategoriasCache(categoriasIniciales);
       } catch (error) {
         console.error('Error cargando categorías iniciales:', error);
@@ -111,8 +112,6 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
   // Cargar categorías con paginación
   const cargarCategorias = async (skipValue = 0, reset = false) => {
     if (!hasMoreCategorias && !reset) return;
-    
-    // Evitar múltiples cargas simultáneas
     if (loadingCategorias) return;
     
     try {
@@ -126,7 +125,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
 
       const response = await getCategorias(params);
       
-      // Manejar respuesta del backend
+      // Manejar diferentes formatos de respuesta
       let nuevasCategorias, total, has_more;
       
       if (Array.isArray(response.data)) {
@@ -138,7 +137,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
         total = response.data.total;
         has_more = response.data.has_more;
       } else {
-        console.error('❌ Formato de respuesta inesperado:', response.data);
+        console.error('Formato de respuesta inesperado:', response.data);
         nuevasCategorias = [];
         total = 0;
         has_more = false;
@@ -146,16 +145,13 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
 
       if (reset) {
         setCategorias(nuevasCategorias);
-        // Solo combinar si hay búsqueda activa y resultados del backend
         if (categoriaInput && nuevasCategorias.length > 0) {
           setSugerenciasLocales(prev => {
-            // Combinar resultados locales con los del backend (sin duplicados)
             const combined = [...prev, ...nuevasCategorias];
             return [...new Set(combined)];
           });
         }
         
-        // Actualizar cache si no hay búsqueda
         if (!categoriaInput) {
           setCategoriasCache(prev => {
             const merged = [...prev, ...nuevasCategorias];
@@ -164,7 +160,6 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
         }
       } else {
         setCategorias(prev => [...prev, ...nuevasCategorias]);
-        // Agregar a sugerencias locales si hay búsqueda activa
         if (categoriaInput) {
           setSugerenciasLocales(prev => {
             const combined = [...prev, ...nuevasCategorias];
@@ -178,7 +173,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
       setSkipCategorias(skipValue + LIMIT_CATEGORIAS);
 
     } catch (error) {
-      console.error('❌ Error cargando categorías:', error);
+      console.error('Error cargando categorías:', error);
     } finally {
       setLoadingCategorias(false);
     }
@@ -198,18 +193,16 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     if (node) observerCategoriasRef.current.observe(node);
   }, [loadingCategorias, hasMoreCategorias, skipCategorias]);
 
-  // Manejar cambio en input de categoría con búsqueda LOCAL SOLAMENTE
+  // Manejar cambio en input de categoría con búsqueda local
   const handleCategoriaChange = (e) => {
     const valor = e.target.value;
     setCategoriaInput(valor);
     setFormData(prev => ({ ...prev, categoria: valor }));
     
-    // Limpiar timer anterior
     if (timerBusquedaRef.current) {
       clearTimeout(timerBusquedaRef.current);
     }
     
-    // Si está vacío, ocultar sugerencias
     if (valor.trim() === '') {
       setSugerenciasLocales([]);
       setMostrarSugerencias(false);
@@ -217,7 +210,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
       return;
     }
     
-    // SOLO filtrado local INSTANTÁNEO (sin llamar al backend)
+    // Filtrado local instantáneo
     const valorLower = valor.toLowerCase();
     const sugerenciasFiltradas = categoriasCache.filter(cat =>
       cat.toLowerCase().includes(valorLower)
@@ -225,8 +218,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     
     setSugerenciasLocales(sugerenciasFiltradas);
     setMostrarSugerencias(true);
-    scrollAjustadoRef.current = false; // Permitir ajuste de scroll para esta búsqueda
-    
+    scrollAjustadoRef.current = false;
   };
 
   // Seleccionar categoría de sugerencias
@@ -234,17 +226,17 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     setCategoriaInput(categoria);
     setFormData(prev => ({ ...prev, categoria }));
     setMostrarSugerencias(false);
-    scrollAjustadoRef.current = false; // Resetear para la próxima vez
+    scrollAjustadoRef.current = false;
   };
 
   // Crear nueva categoría
   const crearNuevaCategoria = () => {
     setFormData(prev => ({ ...prev, categoria: categoriaInput }));
     setMostrarSugerencias(false);
-    scrollAjustadoRef.current = false; // Resetear para la próxima vez
+    scrollAjustadoRef.current = false;
   };
 
-  // Click fuera de sugerencias
+  // Cerrar sugerencias al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -261,14 +253,15 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Calcular margen de ganancia
   const margenGanancia = formData.precio_costo && formData.precio_venta
     ? (((formData.precio_venta - formData.precio_costo) / formData.precio_costo) * 100).toFixed(2)
     : 0;
 
+  // Validar y enviar formulario
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validar categoría obligatoria
     if (!formData.categoria || formData.categoria.trim() === '') {
       toast.warning('La categoría es obligatoria');
       return;
@@ -282,6 +275,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
     onSubmit(formData);
   };
 
+  // Actualizar campos del formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -346,6 +340,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Nombre */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
                   Nombre <span style={{ color: '#ef4444' }}>*</span>
@@ -360,6 +355,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                 />
               </div>
 
+              {/* Descripción */}
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
                   Descripción
@@ -373,6 +369,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                 />
               </div>
 
+              {/* Precios */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
@@ -407,7 +404,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                 </div>
               </div>
 
-              {/* Mostrar margen de ganancia */}
+              {/* Margen de ganancia */}
               {formData.precio_costo > 0 && formData.precio_venta > 0 && (
                 <div style={{
                   backgroundColor: margenGanancia > 0 ? '#d1fae5' : '#fee2e2',
@@ -424,6 +421,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                 </div>
               )}
 
+              {/* Stock */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
@@ -455,6 +453,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                 </div>
               </div>
 
+              {/* Categoría y código de barras */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 {/* Categoría con autocompletado */}
                 <div style={{ position: 'relative' }}>
@@ -469,16 +468,14 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                     onFocus={() => {
                       const valor = categoriaInput.trim();
                       if (valor !== '') {
-                        // Filtrar localmente
                         const valorLower = valor.toLowerCase();
                         const sugerenciasFiltradas = categoriasCache.filter(cat =>
                           cat.toLowerCase().includes(valorLower)
                         );
                         setSugerenciasLocales(sugerenciasFiltradas);
                         setMostrarSugerencias(true);
-                        scrollAjustadoRef.current = false; // Permitir ajuste
+                        scrollAjustadoRef.current = false;
                         
-                        // Cargar desde backend si no hay suficientes resultados locales
                         if (sugerenciasFiltradas.length < 5 && categorias.length === 0) {
                           cargarCategorias(0, true);
                         }
@@ -489,7 +486,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                     autoComplete="off"
                   />
                   
-                  {/* Dropdown de sugerencias con infinite scroll */}
+                  {/* Dropdown de sugerencias */}
                   {mostrarSugerencias && (
                     <div
                       ref={sugerenciasRef}
@@ -532,7 +529,6 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                             );
                           })}
                           
-                          {/* Indicador de carga */}
                           {loadingCategorias && (
                             <div style={{ 
                               padding: '0.5rem 0.75rem', 
@@ -544,7 +540,6 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                             </div>
                           )}
                           
-                          {/* Botón para agregar nueva categoría */}
                           <div
                             onClick={crearNuevaCategoria}
                             style={{
@@ -592,6 +587,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
                   )}
                 </div>
 
+                {/* Código de barras */}
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
                     Código de Barras <span style={{ color: '#ef4444' }}>*</span>
@@ -610,7 +606,7 @@ const ProductoForm = ({ producto, onClose, onSubmit }) => {
             </div>
           </div>
 
-          {/* Footer fijo - SIEMPRE VISIBLE */}
+          {/* Footer fijo con botones */}
           <div style={{
             padding: '1rem 2rem 2rem 2rem',
             flexShrink: 0

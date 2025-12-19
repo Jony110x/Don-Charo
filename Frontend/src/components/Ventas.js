@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Search, ShoppingCart, Trash2, Scan, DollarSign, Banknote } from 'lucide-react';
 import { getProductos, createVenta, buscarPorCodigo, getCotizaciones } from '../api/api';
@@ -8,7 +10,7 @@ import {
   updateProductoStock 
 } from '../utils/indexedDB';
 
-// Componente de tarjeta de producto memoizado
+// Componente de tarjeta de producto memoizado para optimizar renders
 const ProductCard = React.memo(({ producto, onAgregar, monedaSeleccionada, cotizaciones }) => {
   const convertirPrecio = (precioARS) => {
     if (monedaSeleccionada === 'USD') return precioARS * cotizaciones.USD;
@@ -122,7 +124,7 @@ const ProductCard = React.memo(({ producto, onAgregar, monedaSeleccionada, cotiz
   );
 });
 
-// Skeleton para productos
+// Skeleton para productos en estado de carga
 const ProductCardSkeleton = () => (
   <div style={{
     backgroundColor: '#f3f4f6',
@@ -164,6 +166,7 @@ const ProductCardSkeleton = () => (
 );
 
 const Ventas = () => {
+  // Estados principales
   const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]);
   const [busqueda, setBusqueda] = useState('');
@@ -182,6 +185,7 @@ const Ventas = () => {
   const [total, setTotal] = useState(0);
   const LIMIT = 50;
   
+  // Referencias
   const codigoInputRef = useRef(null);
   const gridRef = useRef(null);
   const observerRef = useRef(null);
@@ -190,9 +194,9 @@ const Ventas = () => {
   const requestIdRef = useRef(0);
   const toast = useToast();
   
-  // Hook offline
   const { isOnline, updateVentasPendientes } = useOffline();
 
+  // Inicialización y eventos globales
   useEffect(() => {
     cargarCotizaciones();
     if (codigoInputRef.current) {
@@ -212,7 +216,7 @@ const Ventas = () => {
     return () => document.removeEventListener('keypress', handleGlobalKeyPress);
   }, [carrito]);
 
-  // Debounce para búsqueda
+  // Debounce para búsqueda - evita llamadas excesivas al API
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -239,7 +243,7 @@ const Ventas = () => {
     };
   }, [busqueda]);
 
-  // Cargar productos cuando cambia la búsqueda DEBOUNCED
+  // Recargar productos cuando cambia la búsqueda
   useEffect(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -262,6 +266,7 @@ const Ventas = () => {
     };
   }, [busquedaDebounced]);
 
+  // Cargar cotizaciones de monedas
   const cargarCotizaciones = async () => {
     try {
       const rates = await getCotizaciones();
@@ -271,6 +276,7 @@ const Ventas = () => {
     }
   };
 
+  // Cargar productos con paginación
   const cargarProductos = async (skipValue = skip, reset = false) => {
     if (!hasMore && !reset) return;
     if (!busquedaDebounced && !reset) return;
@@ -301,7 +307,7 @@ const Ventas = () => {
       
       const { productos: nuevosProductos, total: totalProductos, has_more } = response.data;
 
-      // Filtrar solo productos con stock
+      // Filtrar solo productos con stock disponible
       const productosConStock = nuevosProductos.filter(p => p.stock > 0);
 
       if (reset) {
@@ -341,6 +347,7 @@ const Ventas = () => {
     if (node) observerRef.current.observe(node);
   }, [loading, loadingMore, hasMore, skip, busquedaDebounced]);
 
+  // Convertir precio según moneda seleccionada
   const convertirPrecio = (precioARS) => {
     if (monedaSeleccionada === 'USD') {
       return precioARS * cotizaciones.USD;
@@ -350,21 +357,25 @@ const Ventas = () => {
     return precioARS;
   };
 
+  // Calcular descuento por pago en efectivo
   const calcularPrecioEfectivo = (precio) => {
     return precio * 0.92;
   };
 
+  // Obtener símbolo de moneda
   const getSimbolo = () => {
     if (monedaSeleccionada === 'USD') return 'US$';
     if (monedaSeleccionada === 'BRL') return 'R$';
     return '$';
   };
 
+  // Obtener precio final según moneda y método de pago
   const getPrecioFinal = (precio) => {
     const precioConvertido = convertirPrecio(precio);
     return metodoPago === 'efectivo' ? calcularPrecioEfectivo(precioConvertido) : precioConvertido;
   };
 
+  // Buscar producto por código de barras
   const buscarProductoPorCodigo = async (codigo) => {
     if (!codigo || codigo.trim() === '') return;
 
@@ -404,6 +415,7 @@ const Ventas = () => {
     }
   };
 
+  // Agregar producto al carrito
   const agregarAlCarrito = useCallback((producto) => {
     setCarrito(prevCarrito => {
       const itemExistente = prevCarrito.find(item => item.producto_id === producto.id);
@@ -413,14 +425,12 @@ const Ventas = () => {
           toast.warning('No hay suficiente stock');
           return prevCarrito;
         }
-        // Actualización inmediata sin rerender innecesario
         return prevCarrito.map(item =>
           item.producto_id === producto.id
             ? { ...item, cantidad: item.cantidad + 1 }
             : item
         );
       } else {
-        // Agregar nuevo item
         return [...prevCarrito, {
           producto_id: producto.id,
           nombre: producto.nombre,
@@ -432,6 +442,7 @@ const Ventas = () => {
     });
   }, [toast]);
 
+  // Modificar cantidad de un producto en el carrito
   const modificarCantidad = useCallback((producto_id, nuevaCantidad) => {
     if (nuevaCantidad <= 0) {
       eliminarDelCarrito(producto_id);
@@ -447,7 +458,6 @@ const Ventas = () => {
         return prevCarrito;
       }
 
-      // Actualización directa y rápida
       return prevCarrito.map(item =>
         item.producto_id === producto_id
           ? { ...item, cantidad: nuevaCantidad }
@@ -456,10 +466,12 @@ const Ventas = () => {
     });
   }, [toast]);
 
+  // Eliminar producto del carrito
   const eliminarDelCarrito = useCallback((producto_id) => {
     setCarrito(prevCarrito => prevCarrito.filter(item => item.producto_id !== producto_id));
   }, []);
 
+  // Finalizar venta (online u offline)
   const finalizarVenta = async () => {
     if (carrito.length === 0) {
       toast.warning('El carrito está vacío');
@@ -476,11 +488,9 @@ const Ventas = () => {
         metodo_pago: metodoPago
       };
 
-      // MODO OFFLINE
+      // Modo offline: guardar venta localmente
       if (!isOnline) {
-        console.log('📴 OFFLINE: Guardando venta localmente');
         
-        // Guardar venta en cola
         await saveVentaPendiente(ventaData);
         
         // Actualizar stock local
@@ -490,7 +500,6 @@ const Ventas = () => {
             const nuevoStock = producto.stock - item.cantidad;
             await updateProductoStock(item.producto_id, nuevoStock);
             
-            // Actualizar el stock en el estado local también
             setProductos(prevProductos => 
               prevProductos.map(p => 
                 p.id === item.producto_id 
@@ -501,13 +510,11 @@ const Ventas = () => {
           }
         }
         
-        // Actualizar contador de ventas pendientes
         await updateVentasPendientes();
         
-        toast.success('✅ Venta guardada localmente (se sincronizará al conectar)');
+        toast.success('Venta guardada localmente (se sincronizará al conectar)');
         setCarrito([]);
         
-        // Recargar productos si hay búsqueda activa
         if (busquedaDebounced.length > 0) {
           setProductos([]);
           setSkip(0);
@@ -522,12 +529,11 @@ const Ventas = () => {
         return;
       }
 
-      // MODO ONLINE (código original)
+      // Modo online: enviar venta al servidor
       await createVenta(ventaData);
-      toast.success('Venta registrada exitosamente!');
+      toast.success('Venta registrada exitosamente');
       setCarrito([]);
       
-      // Recargar productos si hay búsqueda activa
       if (busquedaDebounced.length > 0) {
         setProductos([]);
         setSkip(0);
@@ -545,7 +551,6 @@ const Ventas = () => {
   };
 
   const totalCarrito = carrito.reduce((sum, item) => sum + (getPrecioFinal(item.precio_unitario) * item.cantidad), 0);
-
   const mostrarProductos = busquedaDebounced.length > 0;
 
   return (
@@ -554,7 +559,7 @@ const Ventas = () => {
       height: 'calc(100vh - 140px)',
       overflow: 'hidden'
     }}>
-      {/* Agregar estilos de animación pulse */}
+      {/* Animación de pulso para skeletons */}
       <style>
         {`
           @keyframes pulse {
@@ -574,7 +579,7 @@ const Ventas = () => {
         gap: '1rem',
         height: '100%'
       }}>
-        {/* Panel de búsqueda */}
+        {/* Panel de búsqueda y productos */}
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -582,10 +587,10 @@ const Ventas = () => {
           height: '100%'
         }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.75rem', flexShrink: 0 }}>
-            Nueva Venta {!isOnline && <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>🔴 OFFLINE</span>}
+            Nueva Venta {!isOnline && <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>OFFLINE</span>}
           </h2>
 
-          {/* Lector de Código de Barras */}
+          {/* Lector de código de barras */}
           <div style={{
             backgroundColor: '#dbeafe',
             padding: '0.75rem',
@@ -650,7 +655,7 @@ const Ventas = () => {
             </div>
           </div>
 
-          {/* Productos con scroll infinito */}
+          {/* Grid de productos con scroll infinito */}
           <div style={{ 
             flex: 1, 
             minHeight: 0,
@@ -746,7 +751,7 @@ const Ventas = () => {
                         color: '#6b7280',
                         fontSize: '0.875rem'
                       }}>
-                        <p>✓ Todos los productos cargados ({total} total)</p>
+                        <p>Todos los productos cargados ({total} total)</p>
                       </div>
                     )}
                   </>
@@ -756,7 +761,7 @@ const Ventas = () => {
           </div>
         </div>
 
-        {/* Carrito */}
+        {/* Panel del carrito */}
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
@@ -797,9 +802,8 @@ const Ventas = () => {
               </div>
             ) : (
               <>
-                {/* Selectores */}
+                {/* Selectores de moneda y método de pago */}
                 <div style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '2px solid #e5e7eb' }}>
-                  {/* Selector de Moneda */}
                   <div style={{ marginBottom: '0.75rem' }}>
                     <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '0.375rem' }}>
                       Moneda:
@@ -827,7 +831,6 @@ const Ventas = () => {
                     </div>
                   </div>
 
-                  {/* Selector de Método de Pago */}
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '0.375rem' }}>
                       Método de Pago:
@@ -960,7 +963,7 @@ const Ventas = () => {
                   })}
                 </div>
 
-                {/* Total y finalizar */}
+                {/* Total y botón finalizar */}
                 <div style={{
                   backgroundColor: metodoPago === 'efectivo' ? '#d1fae5' : '#dbeafe',
                   padding: '0.75rem',
@@ -990,7 +993,7 @@ const Ventas = () => {
                       marginBottom: '0.5rem',
                       textAlign: 'center'
                     }}>
-                      🎉 Ahorro: {getSimbolo()}{(totalCarrito / 0.92 * 0.08).toFixed(2)}
+                      Ahorro: {getSimbolo()}{(totalCarrito / 0.92 * 0.08).toFixed(2)}
                     </div>
                   )}
                   <button
@@ -1004,7 +1007,7 @@ const Ventas = () => {
                       color: 'white'
                     }}
                   >
-                    {!isOnline ? '💾 Guardar Venta (Offline)' : 'Finalizar Venta'}
+                    {!isOnline ? 'Guardar Venta (Offline)' : 'Finalizar Venta'}
                   </button>
                 </div>
               </>

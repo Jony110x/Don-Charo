@@ -133,7 +133,6 @@ class MovimientoFinanciero(BaseModel):
         from_attributes = True
 
 class ProductosPaginados(BaseModel):
-    """Schema para respuesta paginada de productos"""
     productos: List[Producto]
     total: int
     skip: int
@@ -142,3 +141,40 @@ class ProductosPaginados(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    nombre_completo: Optional[str] = None
+    rol: str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    nombre_completo: Optional[str] = None
+    rol: Optional[str] = None
+    activo: Optional[bool] = None
+
+class UserListResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    nombre_completo: Optional[str]
+    rol: str
+    activo: bool
+    fecha_creacion: datetime
+    ultimo_acceso: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+class UsersListResponse(BaseModel):
+    usuarios: List[UserListResponse]
+    total: int
+
+class UserProfileUpdate(BaseModel):
+    username: Optional[str] = None
+    nombre_completo: Optional[str] = None
+    password: Optional[str] = None

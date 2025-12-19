@@ -1,10 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, DollarSign, ShoppingCart, Package, Clock, RefreshCw } from 'lucide-react';
 import { getDashboard, getVentasPorPeriodo, getCategoriasVendidas, getProductosVendidos, getVentasPorHorario, getVentasPorHorarioFecha, getGanancias, getMetodosPago } from '../api/api';
 import { useToast } from '../Toast';
 
-// Tooltip personalizado para mostrar valores correctamente
+// Tooltip personalizado para gráficos
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -29,7 +31,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Componente Skeleton para gráficos
+// Componente skeleton para estado de carga
 const ChartSkeleton = ({ height = 180 }) => (
   <div style={{ 
     width: '100%', 
@@ -57,6 +59,7 @@ const ChartSkeleton = ({ height = 180 }) => (
 );
 
 const Reportes = () => {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [vistaActual, setVistaActual] = useState('ventas');
   const [periodoVentas, setPeriodoVentas] = useState('dia');
@@ -64,6 +67,7 @@ const Reportes = () => {
   const [graficoVentas, setGraficoVentas] = useState('cantidad');
   const [fechaHorario, setFechaHorario] = useState('');
   
+  // Estados para datos de gráficos
   const [datosVentas, setDatosVentas] = useState([]);
   const [datosVentasGanancia, setDatosVentasGanancia] = useState([]);
   const [datosCategorias, setDatosCategorias] = useState([]);
@@ -72,14 +76,15 @@ const Reportes = () => {
   const [datosGanancias, setDatosGanancias] = useState([]);
   const [datosMetodosPago, setDatosMetodosPago] = useState([]);
   const [dashboard, setDashboard] = useState(null);
-  const toast = useToast();
 
+  // Inicializar fecha y cargar datos
   useEffect(() => {
     const hoy = new Date().toISOString().split('T')[0];
     setFechaHorario(hoy);
     cargarDatos();
   }, [periodoVentas, periodoGanancias]);
 
+  // Cargar todos los datos de reportes en paralelo
   const cargarDatos = async () => {
     setLoading(true);
     try {
@@ -111,6 +116,7 @@ const Reportes = () => {
     }
   };
 
+  // Cargar datos de horarios para fecha específica
   const cargarDatosHorarios = async (nuevaFecha) => {
     try {
       const horRes = await getVentasPorHorarioFecha(nuevaFecha);
@@ -131,7 +137,7 @@ const Reportes = () => {
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* Agregar estilos de animación pulse */}
+      {/* Animación de pulso para skeletons */}
       <style>
         {`
           @keyframes pulse {
@@ -145,7 +151,7 @@ const Reportes = () => {
         `}
       </style>
 
-      {/* Header - FIJO - SIEMPRE VISIBLE */}
+      {/* Header con controles */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -155,7 +161,7 @@ const Reportes = () => {
       }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Dashboard de Reportes</h2>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {/* Selector de período global */}
+          {/* Selector de período */}
           <div style={{ display: 'flex', gap: '0.25rem' }}>
             {['dia', 'semana', 'mes', 'año'].map(periodo => (
               <button
@@ -192,7 +198,7 @@ const Reportes = () => {
         </div>
       </div>
 
-      {/* Grid de gráficos - CON SCROLL Y SKELETON */}
+      {/* Grid de gráficos con scroll */}
       <div style={{ 
         flex: 1, 
         overflowY: 'auto', 
@@ -204,7 +210,7 @@ const Reportes = () => {
           {/* Cantidad de Ventas */}
           <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#000000ff' }}>
-              📦 Cantidad de Ventas
+              Cantidad de Ventas
             </h3>
             {loading ? (
               <ChartSkeleton />
@@ -230,7 +236,7 @@ const Reportes = () => {
           {/* Total en Ventas */}
           <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#010705ff' }}>
-              💰 Total en Ventas
+              Total en Ventas
             </h3>
             {loading ? (
               <ChartSkeleton />
@@ -256,7 +262,7 @@ const Reportes = () => {
           {/* Ganancias */}
           <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#000000ff' }}>
-              📈 Ganancias
+              Ganancias
             </h3>
             {loading ? (
               <ChartSkeleton />
@@ -282,10 +288,10 @@ const Reportes = () => {
 
         {/* Fila 2: Categorías, Métodos Pago, Horarios */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-          {/* Categorías */}
+          {/* Top Categorías */}
           <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              📊 Top 10 Categorías
+              Top 10 Categorías
             </h3>
             {loading ? (
               <ChartSkeleton />
@@ -305,7 +311,7 @@ const Reportes = () => {
           {/* Métodos de Pago */}
           <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              💳 Métodos de Pago
+              Métodos de Pago
             </h3>
             {loading ? (
               <ChartSkeleton />
@@ -342,11 +348,11 @@ const Reportes = () => {
             )}
           </div>
 
-          {/* Horarios */}
+          {/* Ventas por Horario */}
           <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 'bold' }}>
-                🕐 Ventas por Horario
+                Ventas por Horario
               </h3>
               <input
                 type="date"
@@ -383,7 +389,7 @@ const Reportes = () => {
         {/* Fila 3: Top Productos (ancho completo) */}
         <div style={{ backgroundColor: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '2px solid #e5e7eb' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            🏆 Top 10 Productos Más Vendidos
+            Top 10 Productos Más Vendidos
           </h3>
           {loading ? (
             <ChartSkeleton height={220} />

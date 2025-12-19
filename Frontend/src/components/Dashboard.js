@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { DollarSign, Package, ShoppingCart, AlertTriangle, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { getDashboardHoy, getProductosStockBajo, getProductosStockCritico } from '../api/api';
@@ -5,6 +6,8 @@ import { useToast } from '../Toast';
 
 const Dashboard = () => {
   const toast = useToast();
+  
+  // Estados principales
   const [stats, setStats] = useState({
     ganancia_hoy: 0,
     ventas_hoy: 0,
@@ -31,26 +34,9 @@ const Dashboard = () => {
   const [loadingMoreCritico, setLoadingMoreCritico] = useState(false);
   const LIMIT_CRITICO = 20;
   
-  // Estados de colapso - Mutuamente exclusivos - CRÍTICO EXPANDIDO POR DEFECTO
-  const [criticoColapsado, setCriticoColapsado] = useState(false); // ✅ Expandido
-  const [bajoColapsado, setBajoColapsado] = useState(true);       // Colapsado
-  
-  // Función para expandir/colapsar con exclusividad
-  const toggleCritico = () => {
-    if (criticoColapsado) {
-      // Si voy a expandir crítico, colapso bajo
-      setBajoColapsado(true);
-    }
-    setCriticoColapsado(!criticoColapsado);
-  };
-
-  const toggleBajo = () => {
-    if (bajoColapsado) {
-      // Si voy a expandir bajo, colapso crítico
-      setCriticoColapsado(true);
-    }
-    setBajoColapsado(!bajoColapsado);
-  };
+  // Estados de colapso - Mutuamente exclusivos - Crítico expandido por defecto
+  const [criticoColapsado, setCriticoColapsado] = useState(false);
+  const [bajoColapsado, setBajoColapsado] = useState(true);
   
   // Refs para Intersection Observer
   const observerBajoRef = useRef(null);
@@ -60,41 +46,42 @@ const Dashboard = () => {
     cargarDatos();
   }, []);
 
+  // Carga inicial de estadísticas y productos con stock bajo/crítico
   const cargarDatos = async () => {
     try {
       setLoading(true);
       const dashboardRes = await getDashboardHoy();
       setStats(dashboardRes.data);
       
-      // Ejecutar en paralelo y esperar a que ambas terminen
+      // Cargar ambos tipos de stock en paralelo
       await Promise.allSettled([
         cargarStockBajo(0, true),
         cargarStockCritico(0, true)
       ]).then(results => {
         results.forEach((result, index) => {
           if (result.status === 'rejected') {
-            console.error(`❌ Falló carga ${index === 0 ? 'stock bajo' : 'stock crítico'}:`, result.reason);
+            console.error(`Falló carga ${index === 0 ? 'stock bajo' : 'stock crítico'}:`, result.reason);
           }
         });
       });
       
     } catch (error) {
-      console.error('❌ Error cargando dashboard:', error);
+      console.error('Error cargando dashboard:', error);
       toast.error('Error al cargar datos del dashboard');
     } finally {
       setLoading(false);
     }
   };
 
+  // Carga productos con stock bajo con paginación
   const cargarStockBajo = async (skipValue, reset = false) => {
-    // Si no se proporciona skipValue, usar el estado actual
     const currentSkip = skipValue !== undefined ? skipValue : skipBajo;
 
-    if (!hasMoreBajo && !reset) {
-      return;
-    }
+    if (!hasMoreBajo && !reset) return;
+    
     try {
       if (!reset) setLoadingMoreBajo(true);
+      
       const response = await getProductosStockBajo({
         skip: currentSkip,
         limit: LIMIT_BAJO
@@ -104,40 +91,40 @@ const Dashboard = () => {
       
       if (reset) {
         setProductosStockBajo(productos || []);
-        setSkipBajo(LIMIT_BAJO); // Inicializar skip para la próxima carga
+        setSkipBajo(LIMIT_BAJO);
       } else {
         setProductosStockBajo(prev => [...prev, ...(productos || [])]);
-        setSkipBajo(currentSkip + LIMIT_BAJO); // Incrementar skip
+        setSkipBajo(currentSkip + LIMIT_BAJO);
       }
       
       setTotalBajo(total || 0);
       setHasMoreBajo(has_more || false);
       
-      // Mostrar toast solo en carga inicial
+      // Toast solo en carga inicial
       if (reset && total > 0) {
         const mensaje = total === 1 
-          ? '⚠️ 1 producto con stock bajo'
-          : `⚠️ ${total} productos con stock bajo`;
+          ? '1 producto con stock bajo'
+          : `${total} productos con stock bajo`;
         toast.warning(mensaje);
       }
       
     } catch (error) {
-      console.error('❌ Error cargando stock bajo:', error);
+      console.error('Error cargando stock bajo:', error);
       console.error('Error details:', error.response?.data);
     } finally {
       setLoadingMoreBajo(false);
     }
   };
 
+  // Carga productos con stock crítico con paginación
   const cargarStockCritico = async (skipValue, reset = false) => {
-    // Si no se proporciona skipValue, usar el estado actual
     const currentSkip = skipValue !== undefined ? skipValue : skipCritico;
     
-    if (!hasMoreCritico && !reset) {
-      return;
-    }
+    if (!hasMoreCritico && !reset) return;
+    
     try {
       if (!reset) setLoadingMoreCritico(true);
+      
       const response = await getProductosStockCritico({
         skip: currentSkip,
         limit: LIMIT_CRITICO
@@ -147,60 +134,76 @@ const Dashboard = () => {
   
       if (reset) {
         setProductosStockCritico(productos || []);
-        setSkipCritico(LIMIT_CRITICO); // Inicializar skip para la próxima carga
+        setSkipCritico(LIMIT_CRITICO);
       } else {
         setProductosStockCritico(prev => [...prev, ...(productos || [])]);
-        setSkipCritico(currentSkip + LIMIT_CRITICO); // Incrementar skip
+        setSkipCritico(currentSkip + LIMIT_CRITICO);
       }
       
       setTotalCritico(total || 0);
       setHasMoreCritico(has_more || false);
       
-      // Mostrar toast solo en carga inicial
+      // Toast solo en carga inicial
       if (reset && total > 0) {
         const mensaje = total === 1 
-          ? '🚨 ¡1 producto en stock CRÍTICO!'
-          : `🚨 ¡${total} productos en stock CRÍTICO!`;
+          ? '1 producto en stock CRÍTICO'
+          : `${total} productos en stock CRÍTICO`;
         toast.error(mensaje);
       }
       
     } catch (error) {
-      console.error('❌ Error cargando stock crítico:', error);
+      console.error('Error cargando stock crítico:', error);
       console.error('Error details:', error.response?.data);
     } finally {
       setLoadingMoreCritico(false);
     }
   };
 
-  // Intersection Observer para stock bajo
+  // Alterna visibilidad de sección crítica (al expandir, colapsa stock bajo)
+  const toggleCritico = () => {
+    if (criticoColapsado) {
+      setBajoColapsado(true);
+    }
+    setCriticoColapsado(!criticoColapsado);
+  };
+
+  // Alterna visibilidad de sección bajo (al expandir, colapsa stock crítico)
+  const toggleBajo = () => {
+    if (bajoColapsado) {
+      setCriticoColapsado(true);
+    }
+    setBajoColapsado(!bajoColapsado);
+  };
+
+  // Intersection Observer para scroll infinito de stock bajo
   const lastProductBajoRef = useCallback(node => {
     if (loading || loadingMoreBajo) return;
     if (observerBajoRef.current) observerBajoRef.current.disconnect();
     
     observerBajoRef.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreBajo) {
-        cargarStockBajo(skipBajo); // Pasar el skip actual
+        cargarStockBajo(skipBajo);
       }
     });
     
     if (node) observerBajoRef.current.observe(node);
   }, [loading, loadingMoreBajo, hasMoreBajo, skipBajo]);
 
-  // Intersection Observer para stock crítico
+  // Intersection Observer para scroll infinito de stock crítico
   const lastProductCriticoRef = useCallback(node => {
     if (loading || loadingMoreCritico) return;
     if (observerCriticoRef.current) observerCriticoRef.current.disconnect();
     
     observerCriticoRef.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreCritico) {
-        cargarStockCritico(skipCritico); // Pasar el skip actual
+        cargarStockCritico(skipCritico);
       }
     });
     
     if (node) observerCriticoRef.current.observe(node);
   }, [loading, loadingMoreCritico, hasMoreCritico, skipCritico]);
 
-  // Componente Skeleton para tarjetas de estadísticas
+  // Componente skeleton para tarjetas de estadísticas
   const StatCardSkeleton = () => (
     <div style={{
       backgroundColor: '#f3f4f6',
@@ -237,7 +240,7 @@ const Dashboard = () => {
     </div>
   );
 
-  // Componente Skeleton para productos
+  // Componente skeleton para items de producto
   const ProductoSkeleton = () => (
     <div style={{
       display: 'flex',
@@ -271,9 +274,9 @@ const Dashboard = () => {
       height: 'calc(100vh - 140px)', 
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden' // Evitar scroll del navegador
+      overflow: 'hidden'
     }}>
-      {/* Agregar estilos de animación pulse */}
+      {/* Animación de pulso para skeletons */}
       <style>
         {`
           @keyframes pulse {
@@ -291,7 +294,7 @@ const Dashboard = () => {
         Panel de Control - Hoy
       </h2>
 
-      {/* Tarjetas de estadísticas - FIJAS */}
+      {/* Grid de tarjetas de estadísticas */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
@@ -308,7 +311,7 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            {/* Ganancias de hoy */}
+            {/* Tarjeta de ganancias */}
             <div style={{
               backgroundColor: '#d1fae5',
               padding: '1.25rem',
@@ -328,7 +331,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Ventas de hoy */}
+            {/* Tarjeta de ventas */}
             <div style={{
               backgroundColor: '#dbeafe',
               padding: '1.25rem',
@@ -348,7 +351,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Productos vendidos hoy */}
+            {/* Tarjeta de productos vendidos */}
             <div style={{
               backgroundColor: '#fce7f3',
               padding: '1.25rem',
@@ -368,7 +371,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Transacciones hoy */}
+            {/* Tarjeta de transacciones */}
             <div style={{
               backgroundColor: '#f3e8ff',
               padding: '1.25rem',
@@ -391,12 +394,12 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Alertas de stock - DISTRIBUCIÓN DINÁMICA */}
+      {/* Secciones de alertas de stock */}
       <div style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: criticoColapsado ? 'flex-start' : 'space-between', // DINÁMICO según estado de crítico
+        justifyContent: criticoColapsado ? 'flex-start' : 'space-between',
         gap: '1rem',
         minHeight: 0,
         overflow: 'hidden'
@@ -404,7 +407,7 @@ const Dashboard = () => {
         
         {loading ? (
           <>
-            {/* Skeleton para productos con stock crítico */}
+            {/* Skeleton para stock crítico */}
             <div style={{
               backgroundColor: '#f3f4f6',
               padding: '1.25rem',
@@ -427,7 +430,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Skeleton para productos con stock bajo */}
+            {/* Skeleton para stock bajo */}
             <div style={{
               backgroundColor: '#f3f4f6',
               padding: '1.25rem',
@@ -453,7 +456,7 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            {/* Productos con stock crítico - COLAPSABLE Y EXCLUSIVO */}
+            {/* Sección de productos con stock crítico */}
             {(totalCritico > 0) && (
               <div style={{
                 backgroundColor: '#fee2e2',
@@ -489,7 +492,7 @@ const Dashboard = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <AlertTriangle size={22} style={{ color: '#dc2626' }} />
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#991b1b', margin: 0 }}>
-                      🚨 Stock CRÍTICO (menos de 10 unidades)
+                      Stock CRÍTICO (menos de 10 unidades)
                     </h3>
                     <span style={{
                       backgroundColor: '#dc2626',
@@ -509,7 +512,7 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                {/* Contenido expandible - TOMA TODO EL ESPACIO DISPONIBLE */}
+                {/* Lista de productos críticos */}
                 {!criticoColapsado && (
                   <div style={{ 
                     flex: 1,
@@ -551,7 +554,7 @@ const Dashboard = () => {
                               padding: '0.25rem 0.75rem',
                               borderRadius: '0.25rem'
                             }}>
-                              ⚠️ Stock: {producto.stock}
+                              Stock: {producto.stock}
                             </span>
                           </div>
                         );
@@ -570,7 +573,7 @@ const Dashboard = () => {
                         </div>
                       )}
                       
-                      {/* Mensaje cuando no hay más */}
+                      {/* Mensaje de finalización */}
                       {!hasMoreCritico && (productosStockCritico?.length > 0) && (
                         <div style={{ 
                           padding: '0.75rem', 
@@ -579,7 +582,7 @@ const Dashboard = () => {
                           fontSize: '0.875rem',
                           flexShrink: 0
                         }}>
-                          ✓ Todos los productos críticos cargados
+                          Todos los productos críticos cargados
                         </div>
                       )}
                     </div>
@@ -588,7 +591,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Productos con stock bajo - COLAPSABLE Y EXCLUSIVO */}
+            {/* Sección de productos con stock bajo */}
             {(totalBajo > 0) && (
               <div style={{
                 backgroundColor: 'white',
@@ -644,7 +647,7 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                {/* Contenido expandible - TOMA TODO EL ESPACIO DISPONIBLE */}
+                {/* Lista de productos con stock bajo */}
                 {!bajoColapsado && (
                   <div style={{ 
                     flex: 1,
@@ -699,7 +702,7 @@ const Dashboard = () => {
                         </div>
                       )}
                       
-                      {/* Mensaje cuando no hay más */}
+                      {/* Mensaje de finalización */}
                       {!hasMoreBajo && (productosStockBajo?.length > 0) && (
                         <div style={{ 
                           padding: '0.75rem', 
@@ -708,7 +711,7 @@ const Dashboard = () => {
                           fontSize: '0.875rem',
                           flexShrink: 0
                         }}>
-                          ✓ Todos los productos con stock bajo cargados
+                          Todos los productos con stock bajo cargados
                         </div>
                       )}
                     </div>
@@ -717,7 +720,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Mensaje cuando no hay alertas */}
+            {/* Mensaje cuando no hay alertas de stock */}
             {totalCritico === 0 && totalBajo === 0 && (
               <div style={{
                 backgroundColor: '#d1fae5',
@@ -728,7 +731,7 @@ const Dashboard = () => {
                 flexShrink: 0
               }}>
                 <p style={{ fontSize: '1.125rem', fontWeight: 600, color: '#065f46' }}>
-                  ✅ No hay productos con stock bajo o crítico
+                  No hay productos con stock bajo o crítico
                 </p>
               </div>
             )}

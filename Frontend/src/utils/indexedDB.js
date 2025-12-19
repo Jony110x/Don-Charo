@@ -1,3 +1,5 @@
+/* eslint-disable import/no-anonymous-default-export */
+/* eslint-disable no-loop-func */
 
 const DB_NAME = 'POS_DonCharo';
 const DB_VERSION = 1;
@@ -32,19 +34,16 @@ export const initDB = () => {
         productosStore.createIndex('codigo_barras', 'codigo_barras', { unique: false });
         productosStore.createIndex('categoria', 'categoria', { unique: false });
         productosStore.createIndex('nombre', 'nombre', { unique: false });
-        console.log('✅ Store de productos creado');
       }
 
       // Store de ventas pendientes
       if (!db.objectStoreNames.contains(STORES.VENTAS_PENDIENTES)) {
         db.createObjectStore(STORES.VENTAS_PENDIENTES, { keyPath: 'id', autoIncrement: true });
-        console.log('✅ Store de ventas pendientes creado');
       }
 
       // Store de configuración
       if (!db.objectStoreNames.contains(STORES.CONFIG)) {
         db.createObjectStore(STORES.CONFIG, { keyPath: 'key' });
-        console.log('✅ Store de config creado');
       }
     };
   });
@@ -79,15 +78,13 @@ export const saveProductos = async (productos) => {
         putRequest.onerror = () => reject(putRequest.error);
       });
     }
-
-    console.log(`✅ ${productos.length} productos guardados en IndexedDB`);
     
     // Guardar timestamp de última sincronización
     await setConfig('last_productos_sync', Date.now());
     
     return true;
   } catch (error) {
-    console.error('❌ Error guardando productos:', error);
+    console.error(' Error guardando productos:', error);
     return false;
   }
 };
@@ -113,7 +110,7 @@ export const getAllProductos = async () => {
       };
     });
   } catch (error) {
-    console.error('❌ Error obteniendo productos:', error);
+    console.error(' Error obteniendo productos:', error);
     return [];
   }
 };
@@ -130,7 +127,7 @@ export const searchProductos = async (busqueda) => {
       (p.codigo_barras && p.codigo_barras.includes(terminoBusqueda))
     );
   } catch (error) {
-    console.error('❌ Error buscando productos:', error);
+    console.error(' Error buscando productos:', error);
     return [];
   }
 };
@@ -156,7 +153,7 @@ export const getProductoByCodigo = async (codigo) => {
       };
     });
   } catch (error) {
-    console.error('❌ Error buscando por código:', error);
+    console.error(' Error buscando por código:', error);
     return null;
   }
 };
@@ -178,7 +175,6 @@ export const updateProductoStock = async (productoId, nuevoStock) => {
           const putRequest = store.put(producto);
           
           putRequest.onsuccess = () => {
-            console.log(`✅ Stock actualizado: Producto ${productoId} → ${nuevoStock}`);
             resolve(true);
           };
           
@@ -195,7 +191,7 @@ export const updateProductoStock = async (productoId, nuevoStock) => {
       };
     });
   } catch (error) {
-    console.error('❌ Error actualizando stock:', error);
+    console.error(' Error actualizando stock:', error);
     return false;
   }
 };
@@ -219,7 +215,6 @@ export const saveVentaPendiente = async (ventaData) => {
       const request = store.add(venta);
       
       request.onsuccess = () => {
-        console.log(`✅ Venta pendiente guardada con ID: ${request.result}`);
         resolve(request.result);
       };
       
@@ -229,7 +224,7 @@ export const saveVentaPendiente = async (ventaData) => {
       };
     });
   } catch (error) {
-    console.error('❌ Error guardando venta pendiente:', error);
+    console.error(' Error guardando venta pendiente:', error);
     throw error;
   }
 };
@@ -256,7 +251,7 @@ export const getVentasPendientes = async () => {
       };
     });
   } catch (error) {
-    console.error('❌ Error obteniendo ventas pendientes:', error);
+    console.error(' Error obteniendo ventas pendientes:', error);
     return [];
   }
 };
@@ -280,7 +275,6 @@ export const markVentaSincronizada = async (ventaId) => {
           const putRequest = store.put(venta);
           
           putRequest.onsuccess = () => {
-            console.log(`✅ Venta ${ventaId} marcada como sincronizada`);
             resolve(true);
           };
           
@@ -297,12 +291,12 @@ export const markVentaSincronizada = async (ventaId) => {
       };
     });
   } catch (error) {
-    console.error('❌ Error marcando venta sincronizada:', error);
+    console.error(' Error marcando venta sincronizada:', error);
     return false;
   }
 };
 
-// Eliminar ventas sincronizadas antiguas (opcional, para limpieza)
+// Eliminar ventas sincronizadas antiguas
 export const cleanSyncedVentas = async () => {
   try {
     const db = await getDB();
@@ -330,7 +324,6 @@ export const cleanSyncedVentas = async () => {
           }
         }
         
-        console.log(`✅ ${eliminadas} ventas antiguas eliminadas`);
         resolve(eliminadas);
       };
       
@@ -339,7 +332,7 @@ export const cleanSyncedVentas = async () => {
       };
     });
   } catch (error) {
-    console.error('❌ Error limpiando ventas:', error);
+    console.error(' Error limpiando ventas:', error);
     return 0;
   }
 };
@@ -350,7 +343,7 @@ export const countVentasPendientes = async () => {
     const ventas = await getVentasPendientes();
     return ventas.length;
   } catch (error) {
-    console.error('❌ Error contando ventas pendientes:', error);
+    console.error(' Error contando ventas pendientes:', error);
     return 0;
   }
 };
@@ -371,7 +364,7 @@ export const setConfig = async (key, value) => {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('❌ Error guardando config:', error);
+    console.error(' Error guardando config:', error);
     return false;
   }
 };
@@ -396,7 +389,7 @@ export const getConfig = async (key) => {
       };
     });
   } catch (error) {
-    console.error('❌ Error obteniendo config:', error);
+    console.error(' Error obteniendo config:', error);
     return null;
   }
 };
@@ -414,10 +407,9 @@ export const clearAllData = async () => {
     await transaction.objectStore(STORES.VENTAS_PENDIENTES).clear();
     await transaction.objectStore(STORES.CONFIG).clear();
     
-    console.log('✅ Toda la base de datos limpiada');
     return true;
   } catch (error) {
-    console.error('❌ Error limpiando base de datos:', error);
+    console.error(' Error limpiando base de datos:', error);
     return false;
   }
 };
